@@ -15,8 +15,9 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
 
   const [trpcClient] = useState(() => {
     // Usar variável de ambiente no build, ou fallback para URL relativa/produção
-    const trpcUrl = import.meta.env.VITE_TRPC_URL || 
-                    (import.meta.env.PROD ? window.location.origin + '/trpc' : 'http://localhost:3001/trpc');
+    // @ts-ignore - import.meta.env é injetado pelo Vite
+    const trpcUrl = import.meta.env?.VITE_TRPC_URL || 
+                    (typeof window !== 'undefined' ? window.location.origin + '/trpc' : 'http://localhost:3001/trpc');
     
     return trpc.createClient({
       links: [
