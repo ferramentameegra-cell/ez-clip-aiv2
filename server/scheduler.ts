@@ -45,13 +45,16 @@ export function startScheduler() {
 
           switch (post.platform) {
             case 'youtube':
-              success = await publishToYouTubeShorts(post.clipId, post.userId);
+              const youtubeResult = await publishToYouTubeShorts(post.clipId, post.userId);
+              success = youtubeResult.success;
               break;
             case 'tiktok':
-              success = await publishToTikTok(post.clipId, post.userId);
+              const tiktokResult = await publishToTikTok(post.clipId, post.userId);
+              success = tiktokResult.success;
               break;
             case 'instagram':
-              success = await publishToInstagram(post.clipId, post.userId);
+              const instagramResult = await publishToInstagram(post.clipId, post.userId);
+              success = instagramResult.success;
               break;
           }
 
