@@ -71,7 +71,7 @@ Se esta é a primeira vez que você conecta GitHub ao Railway:
 Após autorizar, você verá uma lista dos seus repositórios do GitHub:
 
 1. **Use a barra de pesquisa** para encontrar seu repositório:
-   - Digite: `viral-clips-ai` (ou o nome que você deu)
+   - Digite: `ez-clip-ai` (ou o nome que você deu)
    
 2. **Clique no repositório** que você quer fazer deploy
 

@@ -25,7 +25,7 @@ Este pacote contém **TUDO** que você precisa para desenvolver e lançar o EZ C
 
 ## 🎯 Diferencial Único (LEIA ISTO PRIMEIRO)
 
-**Viral Clips AI NÃO é como OpusClip ou Vizard.**
+**EZ CLIP AI NÃO é como OpusClip ou Vizard.**
 
 Eles criam **highlights independentes**. Nós criamos **partes cronológicas sequenciais** que exploram o **hack do algoritmo do TikTok**:
 
@@ -47,7 +47,7 @@ Eles criam **highlights independentes**. Nós criamos **partes cronológicas seq
 
 1. **Abra o projeto no Cursor**
    ```bash
-   cursor /caminho/para/viral-clips-ai
+   cursor /caminho/para/ez-clip-ai
    ```
 
 2. **Leia o prompt completo**
@@ -80,7 +80,7 @@ Eles criam **highlights independentes**. Nós criamos **partes cronológicas seq
    git init
    git add .
    git commit -m "Initial commit"
-   git remote add origin https://github.com/SEU_USUARIO/viral-clips-ai.git
+   git remote add origin https://github.com/SEU_USUARIO/ez-clip-ai.git
    git push -u origin main
    ```
 
@@ -123,7 +123,7 @@ Consulte **TODO_PRIORIZADO.md** para roadmap completo.
 ## 🏗️ Arquitetura do Projeto
 
 ```
-viral-clips-ai/
+ez-clip-ai/
 ├── client/                    # Frontend React
 │   ├── src/
 │   │   ├── pages/            # Páginas da aplicação

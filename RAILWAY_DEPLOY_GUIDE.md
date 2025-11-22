@@ -36,10 +36,10 @@ git add .
 git commit -m "Initial commit"
 
 # 2. Criar repositório no GitHub
-# Vá em github.com/new e crie um repositório "viral-clips-ai"
+# Vá em github.com/new e crie um repositório "ez-clip-ai"
 
 # 3. Conectar e fazer push
-git remote add origin https://github.com/SEU_USUARIO/viral-clips-ai.git
+git remote add origin https://github.com/SEU_USUARIO/ez-clip-ai.git
 git branch -M main
 git push -u origin main
 ```
@@ -50,7 +50,7 @@ git push -u origin main
 2. Clique em **"New Project"**
 3. Selecione **"Deploy from GitHub repo"**
 4. Autorize Railway a acessar seu GitHub
-5. Selecione o repositório **"viral-clips-ai"**
+5. Selecione o repositório **"ez-clip-ai"**
 6. Railway detecta automaticamente que é um projeto Node.js
 
 ### 3. Adicionar Banco de Dados MySQL
@@ -97,7 +97,7 @@ VITE_FRONTEND_FORGE_API_URL=https://forge.manus.im
 AWS_ACCESS_KEY_ID=sua_access_key
 AWS_SECRET_ACCESS_KEY=sua_secret_key
 AWS_REGION=us-east-1
-AWS_S3_BUCKET=viral-clips-ai
+AWS_S3_BUCKET=ez-clip-ai
 
 # Stripe (obtenha em stripe.com/dashboard)
 STRIPE_SECRET_KEY=sk_live_...
@@ -453,7 +453,7 @@ Quando o projeto crescer (>500 usuários):
 ### 1. Separar Serviços
 
 ```
-viral-clips-ai/
+ez-clip-ai/
 ├── web-service/        # Frontend + API (Railway)
 ├── worker-service/     # Processamento de vídeo (Railway)
 └── database/           # MySQL (Railway)
