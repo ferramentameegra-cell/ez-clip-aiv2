@@ -1,8 +1,13 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { appRouter } from './_core/router';
 import { Context } from './_core/trpc';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -133,6 +138,30 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Health check
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Servir arquivos estáticos do frontend (APÓS todas as rotas de API)
+// Importante: deve vir ANTES do catch-all para não interceptar rotas de API
+const distPath = path.resolve(__dirname, '../client/dist');
+app.use(express.static(distPath));
+
+// Catch-all: servir index.html para rotas do frontend (SPA)
+// Mas NÃO interceptar rotas de API (/trpc, /api, /health)
+app.get('*', (req, res, next) => {
+  // Se já foi tratado por uma rota anterior (API), não fazer nada
+  if (req.path.startsWith('/trpc') || req.path.startsWith('/api') || req.path === '/health') {
+    return next();
+  }
+  
+  // Servir index.html para todas as outras rotas (SPA)
+  const indexPath = path.join(distPath, 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      // Se arquivo não existe, pode ser que ainda não foi feito build
+      console.warn(`[Static] Arquivo não encontrado: ${indexPath}`);
+      res.status(404).json({ error: 'Frontend not built yet. Run npm run build first.' });
+    }
+  });
 });
 
 // Endpoint para obter informações do vídeo do YouTube
