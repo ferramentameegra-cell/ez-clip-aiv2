@@ -24,7 +24,22 @@ const verticalSchema = z.enum([
   'yoga',
   'nutricao',
   'lifestyle',
-  'desenvolvimento-pessoal'
+  'desenvolvimento-pessoal',
+  'negocios',
+  'fitness',
+  'tecnologia',
+  'marketing',
+  'financas',
+  'direito',
+  'engenharia-civil',
+  'arquitetura',
+  'moda',
+  'beleza',
+  'esportes',
+  'musica',
+  'arte',
+  'viagem',
+  'games'
 ]).optional();
 
 // Schema para deletar vídeo
@@ -66,7 +81,7 @@ export const userContentRouter = router({
           createdAt: video.createdAt,
         }));
       } catch (error: any) {
-        console.error('[listRetentionVideos] Erro:', error);
+        // Erro ao listar vídeos - silenciosamente retornar array vazio
         return [];
       }
     }),
@@ -74,7 +89,7 @@ export const userContentRouter = router({
   uploadRetentionVideo: protectedProcedure
     .input(z.object({
       file: z.any(), // File object
-      vertical: z.enum(['politica', 'futebol', 'series-filmes', 'comedia', 'religiao', 'profissoes', 'novelas', 'programas-tv', 'saude', 'educacao', 'bem-estar', 'qualidade-vida', 'saude-mental', 'meditacao', 'yoga', 'nutricao', 'lifestyle', 'desenvolvimento-pessoal']),
+      vertical: z.enum(['politica', 'futebol', 'series-filmes', 'comedia', 'religiao', 'profissoes', 'novelas', 'programas-tv', 'saude', 'educacao', 'bem-estar', 'qualidade-vida', 'saude-mental', 'meditacao', 'yoga', 'nutricao', 'lifestyle', 'desenvolvimento-pessoal', 'negocios', 'fitness', 'tecnologia', 'marketing', 'financas', 'direito', 'engenharia-civil', 'arquitetura', 'moda', 'beleza', 'esportes', 'musica', 'arte', 'viagem', 'games']),
       name: z.string()
     }))
     .mutation(async ({ input, ctx }) => {
@@ -118,7 +133,7 @@ export const userContentRouter = router({
           }
         };
       } catch (error: any) {
-        console.error('[uploadRetentionVideo] Erro:', error);
+        // Erro ao fazer upload - propagar erro para o cliente
         throw new Error(`Erro ao fazer upload: ${error.message}`);
       }
     }),
@@ -130,7 +145,7 @@ export const userContentRouter = router({
         await deleteRetentionVideoById(input.videoId);
         return { success: true };
       } catch (error: any) {
-        console.error('[deleteRetentionVideo] Erro:', error);
+        // Erro ao deletar vídeo - propagar erro para o cliente
         throw new Error(`Erro ao deletar vídeo: ${error.message}`);
       }
     }),
@@ -147,7 +162,7 @@ export const userContentRouter = router({
           videoKey: emoji.videoKey,
         }));
       } catch (error: any) {
-        console.error('[listGenericEmojis] Erro:', error);
+        // Erro ao listar emojis - silenciosamente retornar array vazio
         return [];
       }
     })

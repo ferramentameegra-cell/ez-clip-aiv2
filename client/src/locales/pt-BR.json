@@ -221,10 +221,26 @@
     "emailRequired": "Email é obrigatório",
     "emailInvalid": "Email inválido",
     "passwordRequired": "Senha é obrigatória",
-    "passwordMinLength": "Senha deve ter no mínimo 6 caracteres",
+    "passwordMinLength": "Senha deve ter no mínimo 8 caracteres",
     "loginError": "Email ou senha incorretos",
     "loginSuccess": "Login realizado com sucesso!",
-    "loggingIn": "Entrando..."
+    "loggingIn": "Entrando...",
+    "loading": "Entrando...",
+    "success": "Login realizado com sucesso!",
+    "error": "Email ou senha incorretos",
+    "form": {
+      "email": "Email",
+      "emailPlaceholder": "seu@email.com",
+      "password": "Senha",
+      "passwordPlaceholder": "••••••••",
+      "submit": "Entrar"
+    },
+    "validation": {
+      "emailRequired": "Email é obrigatório",
+      "emailInvalid": "Email inválido",
+      "passwordRequired": "Senha é obrigatória"
+    },
+    "signupLink": "Criar uma"
   },
 
   "signup": {
@@ -246,12 +262,41 @@
     "emailRequired": "Email é obrigatório",
     "emailInvalid": "Email inválido",
     "passwordRequired": "Senha é obrigatória",
-    "passwordMinLength": "Senha deve ter no mínimo 6 caracteres",
+    "passwordMinLength": "Senha deve ter no mínimo 8 caracteres",
     "passwordMismatch": "As senhas não correspondem",
     "termsRequired": "Você deve concordar com os termos",
     "signupError": "Erro ao criar conta. Tente novamente.",
     "signupSuccess": "Conta criada com sucesso!",
-    "creatingAccount": "Criando conta..."
+    "creatingAccount": "Criando conta...",
+    "loading": "Criando conta...",
+    "success": "Conta criada com sucesso!",
+    "error": "Erro ao criar conta. Tente novamente.",
+    "alreadyHaveAccount": "Já tem conta?",
+    "loginLink": "Fazer login",
+    "form": {
+      "name": "Nome Completo",
+      "namePlaceholder": "Seu nome",
+      "email": "Email",
+      "emailPlaceholder": "seu@email.com",
+      "password": "Senha",
+      "passwordPlaceholder": "••••••••",
+      "confirmPassword": "Confirmar Senha",
+      "confirmPasswordPlaceholder": "••••••••",
+      "agreeTerms": "Concordo com os",
+      "terms": "Termos de Serviço",
+      "submit": "Criar Conta"
+    },
+    "validation": {
+      "nameRequired": "Nome é obrigatório",
+      "nameMinLength": "Nome deve ter no mínimo 3 caracteres",
+      "emailRequired": "Email é obrigatório",
+      "emailInvalid": "Email inválido",
+      "passwordRequired": "Senha é obrigatória",
+      "passwordMinLength": "Senha deve ter no mínimo 8 caracteres",
+      "confirmPasswordRequired": "Confirme sua senha",
+      "passwordMismatch": "As senhas não correspondem",
+      "termsRequired": "Você deve concordar com os termos"
+    }
   },
 
   "dashboard": {
@@ -273,11 +318,12 @@
 
   "validation": {
     "required": "Campo obrigatório",
+    "requiredFields": "Por favor, preencha todos os campos obrigatórios",
     "invalid": "Valor inválido",
     "minLength": "Mínimo {min} caracteres",
     "maxLength": "Máximo {max} caracteres",
     "email": "Email inválido",
-    "password": "Senha deve ter no mínimo 6 caracteres",
+    "password": "Senha deve ter no mínimo 8 caracteres",
     "match": "Os campos não correspondem"
   },
 

@@ -17,7 +17,22 @@ export type VerticalType =
   | 'yoga'
   | 'nutricao'
   | 'lifestyle'
-  | 'desenvolvimento-pessoal';
+  | 'desenvolvimento-pessoal'
+  | 'negocios'
+  | 'fitness'
+  | 'tecnologia'
+  | 'marketing'
+  | 'financas'
+  | 'direito'
+  | 'engenharia-civil'
+  | 'arquitetura'
+  | 'moda'
+  | 'beleza'
+  | 'esportes'
+  | 'musica'
+  | 'arte'
+  | 'viagem'
+  | 'games';
 
 export interface Vertical {
   id: VerticalType;
@@ -134,6 +149,96 @@ export const VERTICAIS: Record<VerticalType, Vertical> = {
     name: 'Desenvolvimento Pessoal',
     emoji: '📈',
     description: 'Crescimento pessoal, produtividade, autoajuda'
+  },
+  'negocios': {
+    id: 'negocios',
+    name: 'Negócios',
+    emoji: '💼',
+    description: 'Empreendedorismo, startups, investimentos'
+  },
+  'fitness': {
+    id: 'fitness',
+    name: 'Fitness',
+    emoji: '💪',
+    description: 'Treinos, exercícios, musculação'
+  },
+  'tecnologia': {
+    id: 'tecnologia',
+    name: 'Tecnologia',
+    emoji: '💻',
+    description: 'Programação, gadgets, inovação'
+  },
+  'marketing': {
+    id: 'marketing',
+    name: 'Marketing',
+    emoji: '📢',
+    description: 'Estratégias, publicidade, vendas'
+  },
+  'financas': {
+    id: 'financas',
+    name: 'Finanças',
+    emoji: '💰',
+    description: 'Investimentos, economia, dinheiro'
+  },
+  'direito': {
+    id: 'direito',
+    name: 'Direito',
+    emoji: '⚖️',
+    description: 'Advocacia, leis, jurisprudência'
+  },
+  'engenharia-civil': {
+    id: 'engenharia-civil',
+    name: 'Engenharia Civil',
+    emoji: '🏗️',
+    description: 'Construção, obras, projetos'
+  },
+  'arquitetura': {
+    id: 'arquitetura',
+    name: 'Arquitetura',
+    emoji: '🏛️',
+    description: 'Projetos, design, construção'
+  },
+  'moda': {
+    id: 'moda',
+    name: 'Moda',
+    emoji: '👗',
+    description: 'Tendências, estilo, looks'
+  },
+  'beleza': {
+    id: 'beleza',
+    name: 'Beleza',
+    emoji: '💄',
+    description: 'Skincare, maquiagem, cuidados'
+  },
+  'esportes': {
+    id: 'esportes',
+    name: 'Esportes',
+    emoji: '🏃',
+    description: 'Esportes diversos, atletismo, competições'
+  },
+  'musica': {
+    id: 'musica',
+    name: 'Música',
+    emoji: '🎵',
+    description: 'Músicas, instrumentos, produção'
+  },
+  'arte': {
+    id: 'arte',
+    name: 'Arte',
+    emoji: '🎨',
+    description: 'Artes visuais, pintura, desenho'
+  },
+  'viagem': {
+    id: 'viagem',
+    name: 'Viagem',
+    emoji: '✈️',
+    description: 'Turismo, destinos, experiências'
+  },
+  'games': {
+    id: 'games',
+    name: 'Games',
+    emoji: '🎮',
+    description: 'Jogos, streaming, e-sports'
   }
 };
 

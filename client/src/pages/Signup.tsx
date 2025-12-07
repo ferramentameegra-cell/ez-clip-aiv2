@@ -35,11 +35,11 @@ export function Signup() {
     onSuccess: (result) => {
       localStorage.setItem('token', result.token);
       localStorage.setItem('user', JSON.stringify(result.user));
-      toast.success(t('signup.success'));
+      toast.success(t('signup.signupSuccess'));
       setLocation('/dashboard');
     },
     onError: (error) => {
-      toast.error(error.message || t('signup.error'));
+      toast.error(error.message || t('signup.signupError'));
     },
   });
 

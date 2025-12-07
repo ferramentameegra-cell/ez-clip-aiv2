@@ -25,7 +25,7 @@ export function EmojiGallery({
   }
 
   if (error) {
-    console.error('Erro ao carregar emojis:', error);
+    // Erro ao carregar emojis - silenciosamente mostrar mensagem ao usuário
     return (
       <div className="p-4 text-center text-sm text-destructive">
         Erro ao carregar emojis. Tente novamente mais tarde.

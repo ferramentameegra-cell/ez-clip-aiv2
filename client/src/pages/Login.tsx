@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, Lock, Loader2 } from 'lucide-react';
+import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -17,6 +17,7 @@ export function Login() {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{
     email?: string;
     password?: string;
@@ -26,7 +27,7 @@ export function Login() {
     onSuccess: (result) => {
       localStorage.setItem('token', result.token);
       localStorage.setItem('user', JSON.stringify(result.user));
-      toast.success(t('login.success'));
+      toast.success(t('login.loginSuccess'));
       
       // Redirecionar para dashboard ou URL de retorno
       const params = new URLSearchParams(window.location.search);
@@ -34,7 +35,7 @@ export function Login() {
       setLocation(redirect);
     },
     onError: (error) => {
-      toast.error(error.message || t('login.error'));
+      toast.error(error.message || t('login.loginError'));
     },
   });
 
@@ -120,16 +121,24 @@ export function Login() {
                 <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
                     if (errors.password) setErrors({ ...errors, password: undefined });
                   }}
-                  className={`pl-10 ${errors.password ? 'border-red-500' : ''}`}
+                  className={`pl-10 pr-10 ${errors.password ? 'border-red-500' : ''}`}
                   placeholder={t('login.form.passwordPlaceholder')}
                   disabled={isLoading}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
               {errors.password && (
                 <p className="mt-1 text-sm text-red-500">{errors.password}</p>

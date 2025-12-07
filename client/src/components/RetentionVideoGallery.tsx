@@ -31,7 +31,7 @@ export function RetentionVideoGallery({
   }
 
   if (error) {
-    console.error('Erro ao carregar vídeos de retenção:', error);
+    // Erro ao carregar vídeos - silenciosamente mostrar mensagem ao usuário
     return (
       <div className="p-4 text-center text-sm text-destructive">
         Erro ao carregar vídeos. Tente novamente mais tarde.

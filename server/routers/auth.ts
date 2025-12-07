@@ -12,7 +12,7 @@ export const authRouter = router({
   register: publicProcedure
     .input(z.object({
       email: z.string().email(),
-      password: z.string().min(6),
+      password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
       name: z.string().min(2),
       language: z.enum(['pt-BR', 'es', 'en']).optional(),
     }))

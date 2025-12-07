@@ -32,7 +32,7 @@ export function UserVideoSelector({
   }
 
   if (error) {
-    console.error('Erro ao carregar vídeos do usuário:', error);
+    // Erro ao carregar vídeos - silenciosamente mostrar mensagem ao usuário
     return (
       <div className="p-4 text-center space-y-2">
         <p className="text-sm text-destructive">

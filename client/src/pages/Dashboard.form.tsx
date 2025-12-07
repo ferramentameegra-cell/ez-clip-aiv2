@@ -96,7 +96,8 @@ export function Home() {
         createJob.mutate(jobData);
         localStorage.removeItem('pendingJob');
       } catch (error) {
-        console.error('Erro ao processar job pendente:', error);
+        // Erro ao processar job pendente - silenciosamente ignorar
+        toast.error('Erro ao processar job pendente. Tente criar novamente.');
       }
     }
   }, []);
@@ -122,7 +123,8 @@ export function Home() {
         createJob.mutate(jobData);
         localStorage.removeItem('pendingJob');
       } catch (error) {
-        console.error('Erro ao processar job pendente:', error);
+        // Erro ao processar job pendente - silenciosamente ignorar
+        toast.error('Erro ao processar job pendente. Tente criar novamente.');
       }
     }
   }, []);

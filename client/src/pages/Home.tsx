@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Check, Play } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { FAQ } from '@/components/FAQ';
 
 export function Home() {
   const { t } = useTranslation();
@@ -318,19 +319,10 @@ export function Home() {
             {t('home.faq.subtitle')}
           </p>
 
-          <div className="space-y-4">
-            {(t('home.faq.questions', { returnObjects: true }) as any[]).map((item: any, i: number) => (
-              <details key={i} className={`p-6 rounded-lg border ${isDark ? 'bg-slate-700/50 border-slate-600' : 'bg-white border-gray-200'} cursor-pointer`}>
-                <summary className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'} list-none flex items-center justify-between`}>
-                  <span>{item.question}</span>
-                  <span className="ml-4">▼</span>
-                </summary>
-                <p className={`mt-4 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  {item.answer}
-                </p>
-              </details>
-            ))}
-          </div>
+          <FAQ items={(t('home.faq.questions', { returnObjects: true }) as any[]).map((item: any) => ({
+            question: item.question,
+            answer: item.answer
+          }))} />
               </div>
       </section>
 
