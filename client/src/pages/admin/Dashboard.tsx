@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Video, FileVideo, CreditCard, TrendingUp, AlertCircle } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { Link } from 'wouter';

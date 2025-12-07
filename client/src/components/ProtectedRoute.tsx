@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useRoute } from 'wouter';
+import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 
 interface ProtectedRouteProps {

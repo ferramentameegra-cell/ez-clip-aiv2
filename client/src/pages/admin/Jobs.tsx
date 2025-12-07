@@ -11,13 +11,11 @@ type JobStatus = 'pending' | 'downloading' | 'transcribing' | 'cutting' | 'rende
 export function AdminJobs() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<JobStatus | 'all'>('all');
-  const [userIdFilter, setUserIdFilter] = useState<number | null>(null);
 
   const { data, isLoading, refetch } = trpc.admin.getJobs.useQuery({
     page,
     limit: 20,
     status: statusFilter !== 'all' ? statusFilter : undefined,
-    userId: userIdFilter || undefined,
   });
 
   const reprocessMutation = trpc.admin.reprocessJob.useMutation({

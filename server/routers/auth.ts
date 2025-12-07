@@ -77,6 +77,7 @@ export const authRouter = router({
         onboardingAt: user.onboardingAt,
         onboardingUseCase: user.onboardingUseCase,
         onboardingNiche: user.onboardingNiche,
+        role: user.role || 'user',
       };
     }),
 
