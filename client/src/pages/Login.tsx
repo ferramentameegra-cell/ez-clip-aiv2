@@ -1,206 +1,174 @@
-import { useState, useEffect } from 'react';
-import { useLocation, Link } from 'wouter';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, Mail, Lock, User } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Mail, Lock, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
-import { useI18n } from '@/hooks/useI18n';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export function Login() {
+  const { t } = useTranslation();
+  const { isDark } = useTheme();
   const [, setLocation] = useLocation();
-  const { t } = useI18n();
-  const [isLogin, setIsLogin] = useState(true);
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  
-  const loginMutation = trpc.auth.login.useMutation();
-  const registerMutation = trpc.auth.register.useMutation();
-  
-  const isLoading = loginMutation.isPending || registerMutation.isPending;
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+  }>({});
 
-  // Verificar se há um job pendente
-  useEffect(() => {
-    const pendingJob = localStorage.getItem('pendingJob');
-    if (pendingJob) {
-      toast.info('Complete seu cadastro para processar o vídeo');
+  const loginMutation = trpc.auth.login.useMutation({
+    onSuccess: (result) => {
+      localStorage.setItem('token', result.token);
+      localStorage.setItem('user', JSON.stringify(result.user));
+      toast.success(t('login.success'));
+      
+      // Redirecionar para dashboard ou URL de retorno
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get('redirect') || '/dashboard';
+      setLocation(redirect);
+    },
+    onError: (error) => {
+      toast.error(error.message || t('login.error'));
+    },
+  });
+
+  const validateForm = () => {
+    const newErrors: typeof errors = {};
+
+    if (!email.trim()) {
+      newErrors.email = t('login.validation.emailRequired');
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = t('login.validation.emailInvalid');
     }
-  }, []);
+
+    if (!password) {
+      newErrors.password = t('login.validation.passwordRequired');
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    try {
-      if (isLogin) {
-        const result = await loginMutation.mutateAsync({
-          email,
-          password,
-        });
-        
-        // Salvar token e usuário
-        localStorage.setItem('token', result.token);
-        localStorage.setItem('user', JSON.stringify(result.user));
-
-        toast.success(t('login.enter') + ' realizado com sucesso!');
-      } else {
-        const result = await registerMutation.mutateAsync({
-          email,
-          password,
-          name,
-        });
-        
-        // Salvar token e usuário
-        localStorage.setItem('token', result.token);
-        localStorage.setItem('user', JSON.stringify(result.user));
-
-        toast.success(t('login.createAccountButton') + ' realizado com sucesso! Você ganhou 3 créditos grátis!');
-      }
-
-      // Verificar se há job pendente
-      const pendingJob = localStorage.getItem('pendingJob');
-      if (pendingJob) {
-        // Redirecionar para criar o job
-        setLocation('/');
-        // O job será criado automaticamente quando a página carregar
-      } else {
-        setLocation('/');
-      }
-    } catch (error: any) {
-      // Melhorar mensagem de erro
-      let errorMessage = error.message || t('common.error');
-      
-      // Verificar se é erro de conexão com banco
-      if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('Database') || errorMessage.includes('connection')) {
-        errorMessage = '❌ Erro: MySQL não está instalado ou não está rodando. Por favor, instale o MySQL primeiro. Veja o arquivo LEIA_ISTO_PRIMEIRO.md para instruções.';
-      }
-      
-      toast.error(errorMessage);
-      console.error('Erro ao fazer login/registro:', error);
+    if (!validateForm()) {
+      return;
     }
+
+    loginMutation.mutate({
+      email: email.trim().toLowerCase(),
+      password,
+    });
   };
 
+  const isLoading = loginMutation.isPending;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-purple-700 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-2xl">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center">
-            <Sparkles className="h-8 w-8 text-white" />
+    <div className={`min-h-screen flex items-center justify-center p-4 ${isDark ? 'bg-slate-900' : 'bg-gray-50'}`}>
+      <Card className={`w-full max-w-md ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white'}`}>
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-4 w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
+            <Lock className="h-6 w-6 text-white" />
           </div>
-          <div>
-            <CardTitle className="text-2xl font-bold">
-              {isLogin ? t('login.welcome') : t('login.createAccount')}
-            </CardTitle>
-            <CardDescription className="mt-2">
-              {isLogin 
-                ? t('login.enterToProcess')
-                : t('login.startNow')}
-            </CardDescription>
-          </div>
+          <CardTitle className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {t('login.title')}
+          </CardTitle>
+          <p className={`mt-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            {t('login.subtitle')}
+          </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="name" className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  {t('login.fullName')}
-                </Label>
+            {/* Email */}
+            <div>
+              <Label htmlFor="email" className={isDark ? 'text-gray-300' : ''}>
+                {t('login.form.email')}
+              </Label>
+              <div className="relative mt-1">
+                <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
                 <Input
-                  id="name"
-                  type="text"
-                  placeholder="Seu nome"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required={!isLogin}
-                  className="h-12"
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email) setErrors({ ...errors, email: undefined });
+                  }}
+                  className={`pl-10 ${errors.email ? 'border-red-500' : ''}`}
+                  placeholder={t('login.form.emailPlaceholder')}
+                  disabled={isLoading}
                 />
               </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                {t('login.email')}
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="h-12"
-              />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="flex items-center gap-2">
-                <Lock className="h-4 w-4" />
-                {t('login.password')}
+            {/* Senha */}
+            <div>
+              <Label htmlFor="password" className={isDark ? 'text-gray-300' : ''}>
+                {t('login.form.password')}
               </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="h-12"
-              />
-            </div>
-
-            {isLogin && (
-              <div className="text-right">
-                <Link href="/forgot-password" className="text-sm text-muted-foreground hover:text-primary">
-                  {t('login.forgotPassword')}
-                </Link>
+              <div className="relative mt-1">
+                <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password) setErrors({ ...errors, password: undefined });
+                  }}
+                  className={`pl-10 ${errors.password ? 'border-red-500' : ''}`}
+                  placeholder={t('login.form.passwordPlaceholder')}
+                  disabled={isLoading}
+                />
               </div>
-            )}
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+              )}
+            </div>
 
+            {/* Esqueci a senha */}
+            <div className="text-right">
+              <Link href="/forgot-password" className={`text-sm ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'}`}>
+                {t('login.forgotPassword')}
+              </Link>
+            </div>
+
+            {/* Botão Submit */}
             <Button
               type="submit"
-              className="w-full h-12 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
               disabled={isLoading}
             >
-              {isLoading ? t('login.loading') : isLogin ? t('login.enter') : t('login.createAccountButton')}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t('login.loading')}
+                </>
+              ) : (
+                t('login.form.submit')
+              )}
             </Button>
-
-            <div className="text-center text-sm">
-              <span className="text-muted-foreground">
-                {isLogin ? t('login.noAccount') + ' ' : t('login.hasAccount') + ' '}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  setEmail('');
-                  setPassword('');
-                  setName('');
-                }}
-                className="text-primary hover:underline font-medium"
-              >
-                {isLogin ? t('login.register') : t('login.doLogin')}
-              </button>
-            </div>
           </form>
 
-          {!isLogin && (
-            <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-green-800 font-medium">
-                🎁 {t('login.freeCredits')}
-              </p>
-              <p className="text-xs text-green-600 mt-1">
-                {t('login.processVideos')}
-              </p>
-            </div>
-          )}
+          {/* Link para Signup */}
+          <div className={`mt-6 text-center ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            {t('login.noAccount')}{' '}
+            <Link href="/signup" className="text-indigo-600 hover:underline font-semibold">
+              {t('login.signupLink')}
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
   );
 }
-

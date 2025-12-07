@@ -1,21 +1,23 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Check, Play } from 'lucide-react';
+import { ArrowRight, Check, Play, Menu, X } from 'lucide-react';
+import { useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 
-export function Home() {
+export default function Landing() {
   const { t } = useTranslation();
   const { isDark } = useTheme();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className={`min-h-screen ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
-      {/* Header da Landing Page */}
+      {/* Header */}
       <header className={`sticky top-0 z-50 ${isDark ? 'bg-slate-900/95' : 'bg-white/95'} backdrop-blur border-b ${isDark ? 'border-slate-800' : 'border-gray-200'}`}>
         <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          <div className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
             {t('common.appName')}
-          </Link>
+          </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
@@ -43,7 +45,42 @@ export function Home() {
               </Button>
             </Link>
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </nav>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t p-4 space-y-4">
+            <a href="#features" className={`block ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              {t('header.features')}
+            </a>
+            <a href="#how" className={`block ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              {t('header.howItWorks')}
+            </a>
+            <a href="#pricing" className={`block ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              {t('header.pricing')}
+            </a>
+            <div className="flex flex-col gap-2 pt-4 border-t">
+              <Link href="/login">
+                <a className={`${isDark ? 'text-gray-300' : 'text-gray-700'} text-center py-2`}>
+                  {t('header.login')}
+                </a>
+              </Link>
+              <Link href="/signup">
+                <Button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600">
+                  {t('header.signup')}
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
@@ -170,7 +207,7 @@ export function Home() {
               <div key={i} className={`p-8 rounded-xl border ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
                 <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mb-4">
                   <Check className="w-6 h-6 text-white" />
-                          </div>
+                </div>
                 <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                   {t(`home.features.feature${i}.title`)}
                 </h3>
@@ -179,8 +216,8 @@ export function Home() {
                 </p>
               </div>
             ))}
-                      </div>
-                      </div>
+          </div>
+        </div>
       </section>
 
       {/* How It Works */}
@@ -198,7 +235,7 @@ export function Home() {
               <div key={i} className="text-center">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center mx-auto mb-6">
                   <span className="text-2xl font-bold text-white">{i}</span>
-                  </div>
+                </div>
                 <h3 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                   {t(`home.howItWorks.step${i}.title`)}
                 </h3>
@@ -245,7 +282,7 @@ export function Home() {
                   </li>
                 ))}
               </ul>
-                </div>
+            </div>
 
             {/* Pro - Destaque */}
             <div className={`p-8 rounded-xl border-2 border-indigo-600 ${isDark ? 'bg-slate-800/50' : 'bg-white'} transform scale-105 relative`}>
@@ -277,7 +314,7 @@ export function Home() {
                   </li>
                 ))}
               </ul>
-                  </div>
+            </div>
 
             {/* Premium */}
             <div className={`p-8 rounded-xl border ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
@@ -303,9 +340,9 @@ export function Home() {
                   </li>
                 ))}
               </ul>
-                </div>
-                </div>
-                </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* FAQ */}
@@ -331,7 +368,7 @@ export function Home() {
               </details>
             ))}
           </div>
-              </div>
+        </div>
       </section>
 
       {/* Final CTA */}
@@ -346,7 +383,7 @@ export function Home() {
           <Link href="/signup">
             <Button className="h-14 px-8 text-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
               {t('home.cta.button')} <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
+            </Button>
           </Link>
         </div>
       </section>

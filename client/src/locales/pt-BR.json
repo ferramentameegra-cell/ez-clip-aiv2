@@ -1,0 +1,293 @@
+{
+  "common": {
+    "appName": "EZ clip ai",
+    "appDescription": "Transforme seus vídeos em ouro no TikTok",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "delete": "Deletar",
+    "edit": "Editar",
+    "close": "Fechar",
+    "back": "Voltar",
+    "next": "Próximo",
+    "previous": "Anterior"
+  },
+
+  "header": {
+    "logo": "EZ clip ai",
+    "features": "Características",
+    "howItWorks": "Como Funciona",
+    "pricing": "Preços",
+    "blog": "Blog",
+    "login": "Fazer Login",
+    "signup": "Começar Grátis"
+  },
+
+  "home": {
+    "hero": {
+      "badge": "🚀 #1 FERRAMENTA DE RECORTE DE VÍDEO AI",
+      "title": "Transforme Seus Vídeos em Máquinas de Ganhar Dinheiro",
+      "subtitle": "Cortes sequenciais que exploram o algoritmo do TikTok = 50-100x mais views",
+      "cta": "Começar Grátis",
+      "ctaSecondary": "Ver Demonstração",
+      "noCard": "Sem cartão de crédito"
+    },
+
+    "socialProof": {
+      "title": "Usado por especialistas e criadores",
+      "subtitle": "Confie em quem está crescendo exponencialmente"
+    },
+
+    "features": {
+      "title": "Por que EZ clip ai é a melhor solução",
+      "subtitle": "Tudo que você precisa para viralizar no TikTok",
+      "feature1": {
+        "title": "Cortes Sequenciais",
+        "description": "Mantém a ordem original do vídeo, sem pular partes importantes"
+      },
+      "feature2": {
+        "title": "Sem Marca d'água",
+        "description": "Clipes prontos para publicar diretamente nas redes"
+      },
+      "feature3": {
+        "title": "Processamento em 2 minutos",
+        "description": "IA rápida e eficiente que processa vídeos em tempo real"
+      },
+      "feature4": {
+        "title": "50-100x Mais Views",
+        "description": "Algoritmo otimizado para explorar o máximo de crescimento"
+      },
+      "feature5": {
+        "title": "Suporte a Múltiplos Nichos",
+        "description": "Funciona com qualquer tipo de conteúdo: saúde, negócios, educação, etc"
+      },
+      "feature6": {
+        "title": "Legendas Virais",
+        "description": "Legendas automáticas otimizadas para engajamento"
+      }
+    },
+
+    "howItWorks": {
+      "title": "Como Funciona",
+      "subtitle": "3 passos simples para viralizar",
+      "step1": {
+        "title": "Enviar Vídeo",
+        "description": "Faça upload do seu vídeo longo (YouTube, Vimeo, etc)"
+      },
+      "step2": {
+        "title": "IA Cria Clipes",
+        "description": "Nossa IA analisa e cria clipes virais em 2 minutos"
+      },
+      "step3": {
+        "title": "Publicar em Redes",
+        "description": "Publique nos principais canais com um clique"
+      }
+    },
+
+    "testimonials": {
+      "title": "O que os especialistas dizem",
+      "subtitle": "Veja como EZ clip ai transformou seus negócios",
+      "testimonial1": {
+        "name": "Dr. Fernando Lemos",
+        "title": "Médico mais influente do Brasil",
+        "followers": "7M YouTube, 10M Redes",
+        "quote": "EZ clip ai aumentou meu alcance em 300%. Agora consigo criar 10 clipes em minutos, antes levava horas."
+      },
+      "testimonial2": {
+        "name": "Daniel Braun",
+        "title": "Estrategista Digital & Imigração",
+        "followers": "200% crescimento de clientes",
+        "quote": "Meus clientes cresceram 200% em 3 meses usando EZ clip ai. É a ferramenta que faltava."
+      },
+      "testimonial3": {
+        "name": "Josyas Borba",
+        "title": "Produtor de Eventos",
+        "followers": "Maior agência RS",
+        "quote": "50% mais contratos através dos vídeos viralizados com EZ clip ai. Investimento que se paga sozinho."
+      }
+    },
+
+    "pricing": {
+      "title": "Escolha o Plano Perfeito",
+      "subtitle": "Comece grátis, escale conforme crescer",
+      "free": {
+        "name": "Gratuito",
+        "price": "R$ 0",
+        "description": "Perfeito para começar",
+        "features": [
+          "5 clipes/mês",
+          "Sem marca d'água",
+          "Suporte por email",
+          "Acesso básico"
+        ],
+        "cta": "Começar Grátis"
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "R$ 79",
+        "period": "/mês",
+        "description": "Para criadores sérios",
+        "badge": "MAIS POPULAR",
+        "features": [
+          "100 clipes/mês",
+          "Sem marca d'água",
+          "Legendas virais",
+          "Suporte prioritário",
+          "Análise de desempenho",
+          "Múltiplos nichos"
+        ],
+        "cta": "Começar Agora",
+        "bonus": "Bônus: 30 dias grátis"
+      },
+      "premium": {
+        "name": "Premium",
+        "price": "R$ 499",
+        "period": "/mês",
+        "description": "Para agências e empresas",
+        "features": [
+          "Clipes ilimitados",
+          "Sem marca d'água",
+          "Legendas virais",
+          "Suporte 24/7",
+          "Análise avançada",
+          "API access",
+          "Múltiplos usuários",
+          "Integrações customizadas"
+        ],
+        "cta": "Falar com Vendas"
+      }
+    },
+
+    "faq": {
+      "title": "Perguntas Frequentes",
+      "subtitle": "Tudo que você precisa saber",
+      "questions": [
+        {
+          "question": "Quanto tempo leva para processar um vídeo?",
+          "answer": "Em média 2-3 minutos. Vídeos mais longos podem levar até 5 minutos dependendo do tamanho."
+        },
+        {
+          "question": "Posso usar os clipes comercialmente?",
+          "answer": "Sim! Os clipes são seus e podem ser usados em qualquer lugar. Sem restrições de uso."
+        },
+        {
+          "question": "Funciona com qualquer tipo de vídeo?",
+          "answer": "Sim! Funciona com vlogs, podcasts, entrevistas, educação, negócios, saúde, e muito mais."
+        },
+        {
+          "question": "Preciso de conhecimento técnico?",
+          "answer": "Não! A interface é super intuitiva. Qualquer pessoa consegue usar em minutos."
+        },
+        {
+          "question": "Posso cancelar a qualquer momento?",
+          "answer": "Sim! Sem compromisso. Cancele quando quiser, sem multas ou taxas ocultas."
+        },
+        {
+          "question": "Vocês oferecem suporte?",
+          "answer": "Sim! Oferecemos suporte por email (grátis) e suporte prioritário (planos pagos)."
+        },
+        {
+          "question": "Qual é a qualidade dos clipes?",
+          "answer": "Qualidade Full HD (1080p). Otimizada para TikTok, Instagram Reels e YouTube Shorts."
+        },
+        {
+          "question": "Posso integrar com meu CMS?",
+          "answer": "Sim! Plano Premium inclui API access para integrações customizadas."
+        }
+      ]
+    },
+
+    "cta": {
+      "title": "Pronto para Viralizar?",
+      "subtitle": "Comece grátis agora. Sem cartão de crédito necessário.",
+      "button": "Começar Grátis"
+    }
+  },
+
+  "login": {
+    "title": "Bem-vindo de Volta",
+    "subtitle": "Faça login para acessar seu dashboard",
+    "email": "Email",
+    "emailPlaceholder": "seu@email.com",
+    "password": "Senha",
+    "passwordPlaceholder": "••••••••",
+    "forgotPassword": "Esqueceu a senha?",
+    "enter": "Entrar",
+    "noAccount": "Não tem conta?",
+    "signup": "Criar uma",
+    "orContinueWith": "Ou continuar com",
+    "emailRequired": "Email é obrigatório",
+    "emailInvalid": "Email inválido",
+    "passwordRequired": "Senha é obrigatória",
+    "passwordMinLength": "Senha deve ter no mínimo 6 caracteres",
+    "loginError": "Email ou senha incorretos",
+    "loginSuccess": "Login realizado com sucesso!",
+    "loggingIn": "Entrando..."
+  },
+
+  "signup": {
+    "title": "Criar Conta",
+    "subtitle": "Comece grátis agora",
+    "name": "Nome Completo",
+    "namePlaceholder": "Seu nome",
+    "email": "Email",
+    "emailPlaceholder": "seu@email.com",
+    "password": "Senha",
+    "passwordPlaceholder": "••••••••",
+    "confirmPassword": "Confirmar Senha",
+    "confirmPasswordPlaceholder": "••••••••",
+    "agreeTerms": "Concordo com os Termos de Serviço",
+    "create": "Criar Conta",
+    "haveAccount": "Já tem conta?",
+    "login": "Fazer login",
+    "nameRequired": "Nome é obrigatório",
+    "emailRequired": "Email é obrigatório",
+    "emailInvalid": "Email inválido",
+    "passwordRequired": "Senha é obrigatória",
+    "passwordMinLength": "Senha deve ter no mínimo 6 caracteres",
+    "passwordMismatch": "As senhas não correspondem",
+    "termsRequired": "Você deve concordar com os termos",
+    "signupError": "Erro ao criar conta. Tente novamente.",
+    "signupSuccess": "Conta criada com sucesso!",
+    "creatingAccount": "Criando conta..."
+  },
+
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Bem-vindo",
+    "myClips": "Meus Clipes",
+    "newClip": "Novo Clipe",
+    "statistics": "Estatísticas",
+    "settings": "Configurações",
+    "profile": "Perfil",
+    "logout": "Sair",
+    "noClips": "Nenhum clipe criado ainda",
+    "createFirst": "Crie seu primeiro clipe agora",
+    "totalClips": "Total de Clipes",
+    "totalViews": "Total de Views",
+    "avgViews": "Média de Views",
+    "topClip": "Clipe com Melhor Desempenho"
+  },
+
+  "validation": {
+    "required": "Campo obrigatório",
+    "invalid": "Valor inválido",
+    "minLength": "Mínimo {min} caracteres",
+    "maxLength": "Máximo {max} caracteres",
+    "email": "Email inválido",
+    "password": "Senha deve ter no mínimo 6 caracteres",
+    "match": "Os campos não correspondem"
+  },
+
+  "messages": {
+    "success": "Operação realizada com sucesso!",
+    "error": "Ocorreu um erro. Tente novamente.",
+    "loading": "Carregando...",
+    "empty": "Nenhum resultado encontrado",
+    "confirmDelete": "Tem certeza que deseja deletar?",
+    "saved": "Alterações salvas com sucesso!"
+  }
+}
+

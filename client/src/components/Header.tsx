@@ -121,7 +121,7 @@ export function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
-            {isLoggedIn && (
+            {isLoggedIn ? (
               <>
                 {menuItems.map((item) => {
                   const Icon = item.icon;
@@ -141,6 +141,18 @@ export function Header() {
                     </Link>
                   );
                 })}
+              </>
+            ) : (
+              <>
+                <a href="/#features" className="text-sm font-medium text-gray-700 hover:text-gray-900">
+                  Características
+                </a>
+                <a href="/#how" className="text-sm font-medium text-gray-700 hover:text-gray-900">
+                  Como Funciona
+                </a>
+                <a href="/#pricing" className="text-sm font-medium text-gray-700 hover:text-gray-900">
+                  Preços
+                </a>
               </>
             )}
           </nav>
