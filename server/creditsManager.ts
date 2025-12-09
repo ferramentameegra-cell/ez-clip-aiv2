@@ -5,7 +5,7 @@ import { eq, sql } from 'drizzle-orm';
 // Lista de emails de administradores que nunca pagam créditos
 const ADMIN_EMAILS = [
   'daniel.braun@hotmail.com',
-  'Josyasborba@hotmail.com',
+  'josyasborba@hotmail.com',
 ].map(email => email.toLowerCase()); // Normalizar para lowercase
 
 /**
