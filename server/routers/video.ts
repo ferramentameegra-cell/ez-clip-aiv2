@@ -50,7 +50,11 @@ export const videoRouter = router({
       // Validar vídeo antes de criar job
       try {
         const info = await ytdl.getInfo(input.youtubeUrl);
-        const validation = validateVideo(info, input.startTime, input.endTime);
+        const validation = validateVideo(
+          info, 
+          input.startTime ?? undefined, 
+          input.endTime ?? undefined
+        );
         if (!validation.valid) {
           throw new Error(validation.error || 'Vídeo inválido');
         }
