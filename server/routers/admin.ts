@@ -202,6 +202,61 @@ export const adminRouter = router({
       return { success: true };
     }),
 
+  // Adicionar créditos a um usuário (soma ao valor atual)
+  addCredits: adminProcedure
+    .input(z.object({
+      userId: z.number(),
+      credits: z.number().min(1),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      await db
+        .update(users)
+        .set({
+          credits: sql`${users.credits} + ${input.credits}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, input.userId));
+
+      return { success: true };
+    }),
+
+  // Adicionar créditos por email (útil para admins)
+  addCreditsByEmail: adminProcedure
+    .input(z.object({
+      email: z.string().email(),
+      credits: z.number().min(1),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      const [user] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, input.email.toLowerCase()))
+        .limit(1);
+
+      if (!user) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Usuário não encontrado',
+        });
+      }
+
+      await db
+        .update(users)
+        .set({
+          credits: sql`${users.credits} + ${input.credits}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, user.id));
+
+      return { success: true, userId: user.id };
+    }),
+
   // Listar jobs
   getJobs: adminProcedure
     .input(z.object({
