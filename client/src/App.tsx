@@ -15,6 +15,8 @@ import { Onboarding } from '@/pages/Onboarding';
 import { AdminDashboard } from '@/pages/admin/Dashboard';
 import { AdminUsers } from '@/pages/admin/Users';
 import { AdminJobs } from '@/pages/admin/Jobs';
+import { AdminRetentionVideos } from '@/pages/admin/RetentionVideos';
+import { AdminEmojis } from '@/pages/admin/Emojis';
 import { TRPCProvider } from '@/lib/trpc-client.tsx';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { Toaster } from 'sonner';
@@ -101,6 +103,16 @@ function AppContent() {
         <Route path="/admin/jobs">
           <ProtectedRoute requireOnboarding={true} requireAdmin={true}>
             <AdminJobs />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/retention-videos">
+          <ProtectedRoute requireOnboarding={true} requireAdmin={true}>
+            <AdminRetentionVideos />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/emojis">
+          <ProtectedRoute requireOnboarding={true} requireAdmin={true}>
+            <AdminEmojis />
           </ProtectedRoute>
         </Route>
         <Route path="/admin">

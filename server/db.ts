@@ -91,6 +91,7 @@ export async function getRetentionVideosByVertical(vertical?: string) {
   if (!db) return [];
 
   if (vertical) {
+    // Retornar vídeos da plataforma (userId IS NULL) ou vídeos do usuário
     return await db
       .select()
       .from(retentionVideos)

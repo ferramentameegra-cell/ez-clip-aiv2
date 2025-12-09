@@ -344,5 +344,211 @@ export const adminRouter = router({
 
       return { success: true };
     }),
+
+  // Gerenciar Vídeos de Retenção da Plataforma
+  listPlatformRetentionVideos: adminProcedure
+    .input(z.object({
+      vertical: z.string().optional(),
+      page: z.number().min(1).default(1),
+      limit: z.number().min(1).max(100).default(20),
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      const { retentionVideos } = await import('../../drizzle/schema');
+      const offset = (input.page - 1) * input.limit;
+
+      let conditions: any[] = [sql`${retentionVideos.userId} IS NULL`]; // Apenas vídeos da plataforma
+
+      if (input.vertical) {
+        conditions.push(eq(retentionVideos.vertical, input.vertical));
+      }
+
+      const whereClause = and(...conditions);
+
+      const allVideos = await db
+        .select()
+        .from(retentionVideos)
+        .where(whereClause)
+        .orderBy(desc(retentionVideos.createdAt))
+        .limit(input.limit)
+        .offset(offset);
+
+      const [totalCount] = await db
+        .select({ count: count() })
+        .from(retentionVideos)
+        .where(whereClause);
+
+      return {
+        videos: allVideos,
+        pagination: {
+          page: input.page,
+          limit: input.limit,
+          total: totalCount.count,
+          totalPages: Math.ceil(totalCount.count / input.limit),
+        },
+      };
+    }),
+
+  uploadPlatformRetentionVideo: adminProcedure
+    .input(z.object({
+      file: z.any(),
+      vertical: z.string(),
+      name: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      const { storagePut } = await import('../storage');
+      const { randomBytes } = await import('crypto');
+      const schema = await import('../../drizzle/schema');
+      const { retentionVideos } = schema;
+
+      // Converter File para Buffer
+      const fileBuffer = Buffer.from(await input.file.arrayBuffer());
+      const fileExtension = input.name.split('.').pop() || 'mp4';
+      const videoKey = `platform-retention-videos/${randomBytes(16).toString('hex')}.${fileExtension}`;
+
+      // Upload para S3/R2
+      const { url: videoUrl } = await storagePut(
+        videoKey,
+        fileBuffer,
+        input.file.type || 'video/mp4'
+      );
+
+      // Salvar no banco (userId = NULL significa vídeo da plataforma)
+      const result = await db.insert(retentionVideos).values({
+        userId: null, // NULL = vídeo da plataforma (todos podem usar)
+        vertical: input.vertical,
+        name: input.name,
+        videoKey,
+        videoUrl,
+        duration: 0, // TODO: Obter duração real
+        isActive: true,
+      });
+
+      const videoId = Number(result[0].insertId);
+
+      return { success: true, videoId };
+    }),
+
+  deletePlatformRetentionVideo: adminProcedure
+    .input(z.object({
+      videoId: z.number(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      const schema = await import('../../drizzle/schema');
+      const { retentionVideos } = schema;
+
+      await db
+        .update(retentionVideos)
+        .set({ isActive: false })
+        .where(and(eq(retentionVideos.id, input.videoId), sql`${retentionVideos.userId} IS NULL`));
+
+      return { success: true };
+    }),
+
+  // Gerenciar Emojis 3D
+  listEmojis: adminProcedure
+    .input(z.object({
+      page: z.number().min(1).default(1),
+      limit: z.number().min(1).max(100).default(20),
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      const schema = await import('../../drizzle/schema');
+      const { genericEmojis } = schema;
+      const offset = (input.page - 1) * input.limit;
+
+      const allEmojis = await db
+        .select()
+        .from(genericEmojis)
+        .orderBy(desc(genericEmojis.createdAt))
+        .limit(input.limit)
+        .offset(offset);
+
+      const [totalCount] = await db
+        .select({ count: count() })
+        .from(genericEmojis);
+
+      return {
+        emojis: allEmojis,
+        pagination: {
+          page: input.page,
+          limit: input.limit,
+          total: totalCount.count,
+          totalPages: Math.ceil(totalCount.count / input.limit),
+        },
+      };
+    }),
+
+  uploadEmoji: adminProcedure
+    .input(z.object({
+      file: z.any(),
+      name: z.string(),
+      emoji: z.string(),
+      category: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      const { storagePut } = await import('../storage');
+      const { randomBytes } = await import('crypto');
+      const schema = await import('../../drizzle/schema');
+      const { genericEmojis } = schema;
+
+      // Converter File para Buffer
+      const fileBuffer = Buffer.from(await input.file.arrayBuffer());
+      const fileExtension = input.name.split('.').pop() || 'mp4';
+      const videoKey = `platform-emojis/${randomBytes(16).toString('hex')}.${fileExtension}`;
+
+      // Upload para S3/R2
+      const { url: videoUrl } = await storagePut(
+        videoKey,
+        fileBuffer,
+        input.file.type || 'video/mp4'
+      );
+
+      // Salvar no banco
+      const result = await db.insert(genericEmojis).values({
+        name: input.name,
+        emoji: input.emoji,
+        videoKey,
+        videoUrl,
+        category: input.category || null,
+        isActive: true,
+      });
+
+      const emojiId = Number(result[0].insertId);
+
+      return { success: true, emojiId };
+    }),
+
+  deleteEmoji: adminProcedure
+    .input(z.object({
+      emojiId: z.number(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      const schema = await import('../../drizzle/schema');
+      const { genericEmojis } = schema;
+
+      await db
+        .update(genericEmojis)
+        .set({ isActive: false })
+        .where(eq(genericEmojis.id, input.emojiId));
+
+      return { success: true };
+    }),
 });
 

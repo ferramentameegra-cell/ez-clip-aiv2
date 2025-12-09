@@ -54,6 +54,16 @@ export function AdminDashboard() {
             Jobs
           </button>
         </Link>
+        <Link href="/admin/retention-videos">
+          <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+            Vídeos de Retenção
+          </button>
+        </Link>
+        <Link href="/admin/emojis">
+          <button className="px-4 py-2 bg-pink-600 text-white rounded hover:bg-pink-700">
+            Emojis 3D
+          </button>
+        </Link>
       </div>
 
       {/* Cards de Métricas */}
