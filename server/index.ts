@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { appRouter } from './_core/router';
 import { Context } from './_core/trpc';
+import { globalLimiter, authLimiter } from './middleware/rateLimit';
+import { logger } from './lib/logger';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +19,14 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || true, // Aceitar qualquer origem em desenvolvimento
   credentials: true,
 }));
+
+// Rate limiting global (antes de outras rotas)
+app.use('/api/', globalLimiter);
+app.use('/trpc/', globalLimiter);
+
+// Rate limiting para autenticação
+app.use('/trpc/auth.login', authLimiter);
+app.use('/trpc/auth.signup', authLimiter);
 
 // Context do tRPC com autenticação
 const createContext = async (req: express.Request): Promise<Context> => {
@@ -41,7 +51,7 @@ const createContext = async (req: express.Request): Promise<Context> => {
       }
     } catch (error) {
       // Token inválido, continuar sem usuário
-      console.error('[Auth] Erro ao verificar token:', error);
+      logger.error('[Auth] Erro ao verificar token:', error);
     }
   }
 
@@ -111,7 +121,7 @@ app.use('/trpc', async (req, res) => {
       router: appRouter,
       createContext: () => createContext(req),
       onError: ({ error, path }) => {
-        console.error(`[tRPC] Erro em ${path}:`, error);
+        logger.error(`[tRPC] Erro em ${path}:`, error);
       },
     });
     
@@ -125,8 +135,8 @@ app.use('/trpc', async (req, res) => {
     });
     res.send(text);
   } catch (error: any) {
-    console.error('[tRPC] Erro ao processar request:', error);
-    console.error('[tRPC] Stack:', error.stack);
+    logger.error('[tRPC] Erro ao processar request:', error);
+    logger.error('[tRPC] Stack:', error.stack);
     res.status(500).json({ error: error.message || 'Erro interno do servidor' });
   }
 });
@@ -162,69 +172,15 @@ app.get('/api/youtube/info', async (req, res) => {
       viewCount: info.videoDetails.viewCount,
     });
   } catch (error: any) {
-    console.error('[YouTube Info] Erro:', error);
+    logger.error('[YouTube Info] Erro:', error);
     res.status(400).json({ error: error.message || 'Erro ao buscar informações do vídeo' });
   }
 });
 
 // Webhook do Stripe (deve vir ANTES do express.json())
-app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const StripeLib = (await import('stripe')).default;
-  
-  const stripeInstance = new StripeLib(process.env.STRIPE_SECRET_KEY || '', {
-    apiVersion: '2025-11-17.clover',
-  });
-
-  const sig = req.headers['stripe-signature'];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  if (!sig || !webhookSecret) {
-    return res.status(400).send('Webhook signature missing');
-  }
-
-  let event: any; // Stripe.Event
-
-  try {
-    event = stripeInstance.webhooks.constructEvent(req.body, sig, webhookSecret);
-  } catch (err: any) {
-    console.error('[Stripe] Erro ao verificar webhook:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  // Processar evento
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as any; // Stripe.Checkout.Session
-    
-    if (session.payment_status === 'paid' && session.metadata) {
-      const userId = parseInt(session.metadata.userId || '0');
-      const creditsToAdd = parseInt(session.metadata.credits || '0');
-
-      if (userId && creditsToAdd) {
-        try {
-          const { getDb } = await import('./db');
-          const { users } = await import('../drizzle/schema');
-          const { eq, sql } = await import('drizzle-orm');
-          
-          const db = await getDb();
-          if (db) {
-            await db
-              .update(users)
-              .set({
-                credits: sql`credits + ${creditsToAdd}`,
-              })
-              .where(eq(users.id, userId));
-
-            console.log(`[Stripe] Créditos adicionados: ${creditsToAdd} para usuário ${userId}`);
-          }
-        } catch (error: any) {
-          console.error('[Stripe] Erro ao adicionar créditos:', error);
-        }
-      }
-    }
-  }
-
-  res.json({ received: true });
-});
+// IMPORTANTE: Express.raw() deve estar ANTES de qualquer outro middleware que processe JSON
+import { stripeWebhookHandler } from './webhooks/stripe';
+app.post('/api/webhooks/stripe', express.raw({ type: 'application/json', limit: '1mb' }), stripeWebhookHandler);
 
 // Servir arquivos estáticos do frontend (DEPOIS de todas as rotas de API)
 const distPath = path.resolve(__dirname, '../client/dist');
@@ -247,16 +203,17 @@ app.use((_req, res) => {
 
 // Iniciar scheduler para publicações agendadas
 import { startScheduler } from './scheduler';
-import './queue'; // Importar para inicializar a fila
+import './lib/jobQueue'; // Importar para inicializar a fila
 
 startScheduler();
 
 // Inicializar fila de processamento de vídeo
-console.log('[Queue] Fila de processamento de vídeo inicializada');
+logger.info('[Queue] Fila de processamento de vídeo inicializada');
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`🚀 Backend rodando em http://localhost:${PORT}`);
-  console.log(`📡 tRPC endpoint: http://localhost:${PORT}/trpc`);
-  console.log(`❤️  Health check: http://localhost:${PORT}/health`);
+  logger.info(`🚀 Backend rodando em http://localhost:${PORT}`);
+  logger.info(`📡 tRPC endpoint: http://localhost:${PORT}/trpc`);
+  logger.info(`❤️  Health check: http://localhost:${PORT}/health`);
+  logger.info(`🔐 Webhook Stripe: http://localhost:${PORT}/api/webhooks/stripe`);
 });

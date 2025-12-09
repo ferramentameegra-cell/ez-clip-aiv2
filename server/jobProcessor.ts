@@ -10,6 +10,7 @@ import { jobs } from '../drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { calculateRetentionScore } from './retentionScorer';
 import { generateThumbnail } from './thumbnailGenerator';
+import { logger } from './lib/logger';
 import fs from 'fs';
 
 /**
@@ -22,7 +23,7 @@ export async function processVideoJob(jobId: number): Promise<void> {
     const job = await getJobById(jobId);
     if (!job) throw new Error('Job não encontrado');
 
-    console.log(`[Job ${jobId}] Iniciando processamento...`);
+    logger.info(`[Job ${jobId}] Iniciando processamento...`);
 
     // 1. Download do YouTube (com corte se startTime/endTime estiverem definidos)
     await updateJobStatus(jobId, 'downloading', 10);
@@ -35,9 +36,9 @@ export async function processVideoJob(jobId: number): Promise<void> {
     tempFiles.push(videoPath, audioPath);
 
     const downloadMessage = (job.startTime !== null && job.endTime !== null)
-      ? `[Job ${jobId}] Download concluído (trecho ${job.startTime}s-${job.endTime}s): ${title} (${duration}s)`
-      : `[Job ${jobId}] Download concluído: ${title} (${duration}s)`;
-    console.log(downloadMessage);
+      ? `Download concluído (trecho ${job.startTime}s-${job.endTime}s): ${title} (${duration}s)`
+      : `Download concluído: ${title} (${duration}s)`;
+    logger.info(`[Job ${jobId}] ${downloadMessage}`);
 
     // 2. Transcrição com Whisper
     await updateJobStatus(jobId, 'transcribing', 30);
@@ -55,7 +56,7 @@ export async function processVideoJob(jobId: number): Promise<void> {
         }
       : transcription;
 
-    console.log(`[Job ${jobId}] Transcrição: ${adjustedTranscription.segments.length} segmentos`);
+    logger.info(`[Job ${jobId}] Transcrição: ${adjustedTranscription.segments.length} segmentos`);
 
     // 3. Dividir em clipes sequenciais
     await updateJobStatus(jobId, 'cutting', 50);
@@ -86,9 +87,9 @@ export async function processVideoJob(jobId: number): Promise<void> {
             mode,
             job.headline || undefined
           );
-          console.log(`[Job ${jobId}] ${clips.length} clipes criados com IA (Package ${packageSize}, Nicho: ${job.vertical})`);
+          logger.info(`[Job ${jobId}] ${clips.length} clipes criados com IA (Package ${packageSize}, Nicho: ${job.vertical})`);
         } catch (error: any) {
-          console.warn(`[Job ${jobId}] Erro na segmentação com IA, usando algoritmo:`, error.message);
+          logger.warn(`[Job ${jobId}] Erro na segmentação com IA, usando algoritmo:`, { error: error.message });
           clips = splitIntoSequentialClipsWithOverlap(
             adjustedTranscription,
             packageSize,
@@ -97,7 +98,7 @@ export async function processVideoJob(jobId: number): Promise<void> {
             mode,
             tolerance
           );
-          console.log(`[Job ${jobId}] ${clips.length} clipes criados com algoritmo (Package ${packageSize})`);
+          logger.info(`[Job ${jobId}] ${clips.length} clipes criados com algoritmo (Package ${packageSize})`);
         }
       } else {
         // Usar segmentação algorítmica
@@ -125,7 +126,7 @@ export async function processVideoJob(jobId: number): Promise<void> {
       if (retentionVideos.length > 0) {
         const randomVideo = retentionVideos[Math.floor(Math.random() * retentionVideos.length)];
         retentionVideoPath = randomVideo.videoUrl || undefined; // URL do S3
-        console.log(`[Job ${jobId}] Vídeo de retenção: ${randomVideo.name}`);
+        logger.info(`[Job ${jobId}] Vídeo de retenção: ${randomVideo.name}`);
       }
     }
 
@@ -137,7 +138,7 @@ export async function processVideoJob(jobId: number): Promise<void> {
       const progress = 60 + Math.floor((i / clips.length) * 35);
       await updateJobStatus(jobId, 'rendering', progress);
 
-      console.log(`[Job ${jobId}] Processando clipe ${i + 1}/${clips.length}...`);
+      logger.info(`[Job ${jobId}] Processando clipe ${i + 1}/${clips.length}...`);
 
       const processedClip = await processClip({
         videoPath,
@@ -162,7 +163,7 @@ export async function processVideoJob(jobId: number): Promise<void> {
           thumbnailUrl = thumbnailResult.thumbnailUrl;
         }
       } catch (error: any) {
-        console.warn(`[Job ${jobId}] Erro ao gerar thumbnail:`, error.message);
+        logger.warn(`[Job ${jobId}] Erro ao gerar thumbnail:`, { error: error.message });
         // Continuar mesmo se thumbnail falhar
       }
       
@@ -171,7 +172,7 @@ export async function processVideoJob(jobId: number): Promise<void> {
         try {
           fs.unlinkSync(processedClip.localPath);
         } catch (error: any) {
-          console.warn(`[Job ${jobId}] Erro ao limpar arquivo local:`, error.message);
+          logger.warn(`[Job ${jobId}] Erro ao limpar arquivo local:`, { error: error.message });
         }
       }
 
@@ -216,7 +217,7 @@ export async function processVideoJob(jobId: number): Promise<void> {
         });
       }
 
-      console.log(`[Job ${jobId}] Clipe ${i + 1} processado - Score: ${retentionScore.score}/100`);
+      logger.info(`[Job ${jobId}] Clipe ${i + 1} processado - Score: ${retentionScore.score}/100`);
     }
 
     // 6. Atualizar totalClips no job
@@ -235,11 +236,11 @@ export async function processVideoJob(jobId: number): Promise<void> {
     const creditsToConsume = clips.length;
     await decrementUserCredits(job.userId, creditsToConsume);
     
-    console.log(`[Job ${jobId}] Processamento concluído! ${creditsToConsume} créditos consumidos.`);
+    logger.info(`[Job ${jobId}] Processamento concluído! ${creditsToConsume} créditos consumidos.`);
 
   } catch (error: any) {
-    console.error(`[Job ${jobId}] Erro:`, error.message);
-    await updateJobStatus(jobId, 'failed', 0);
+    logger.error(`[Job ${jobId}] Erro:`, { error: error.message, stack: error.stack });
+    await updateJobStatus(jobId, 'failed', 0, error.message);
     throw error;
 
   } finally {

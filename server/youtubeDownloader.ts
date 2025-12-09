@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 import { pipeline } from 'stream';
+import { logger } from './lib/logger';
 
 const pipelineAsync = promisify(pipeline);
 
@@ -81,8 +82,18 @@ export async function downloadYouTubeVideo(
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  // Obter informações
-  const info = await ytdl.getInfo(youtubeUrl);
+  // Obter informações do vídeo com headers otimizados
+  const info = await ytdl.getInfo(youtubeUrl, {
+    requestOptions: {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive',
+      }
+    }
+  });
   
   // Validar vídeo (passar startTime/endTime se fornecidos)
   const validation = validateVideo(info, startTime, endTime);
@@ -105,10 +116,10 @@ export async function downloadYouTubeVideo(
     : duration;
   
   const logMessage = (startTime !== undefined && endTime !== undefined)
-    ? `[Download] Baixando trecho: ${info.videoDetails.title} (${startTime}s - ${endTime}s, ${actualDuration}s)`
-    : `[Download] Baixando: ${info.videoDetails.title} (${duration}s)`;
+    ? `Baixando trecho: ${info.videoDetails.title} (${startTime}s - ${endTime}s, ${actualDuration}s)`
+    : `Baixando: ${info.videoDetails.title} (${duration}s)`;
   
-  console.log(logMessage);
+  logger.info(`[Download] ${logMessage}`);
 
   // Escolher formato (1080p ou menor, com áudio)
   const format = ytdl.chooseFormat(info.formats, {
@@ -122,11 +133,23 @@ export async function downloadYouTubeVideo(
 
   // Download completo primeiro (necessário para cortar depois)
   const tempVideoPath = path.join(outputDir, `temp_${videoFilename}`);
-  const videoStream = ytdl(youtubeUrl, { format });
+  const videoStream = ytdl(youtubeUrl, { 
+    format,
+    highWaterMark: 1 << 25, // 32MB buffer para evitar muitas requisições
+    requestOptions: {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive',
+      }
+    }
+  });
   const writeStream = fs.createWriteStream(tempVideoPath);
   await pipelineAsync(videoStream, writeStream);
 
-  console.log(`[Download] Vídeo completo baixado: ${tempVideoPath}`);
+  logger.info(`[Download] Vídeo completo baixado: ${tempVideoPath}`);
 
   // Se startTime e endTime foram fornecidos, cortar o vídeo
   if (startTime !== undefined && endTime !== undefined) {
@@ -137,7 +160,7 @@ export async function downloadYouTubeVideo(
         .outputOptions(['-c:v libx264', '-preset fast', '-crf 23', '-c:a aac', '-b:a 128k'])
         .output(videoPath)
         .on('end', () => {
-          console.log(`[Download] Vídeo cortado: ${videoPath}`);
+          logger.info(`[Download] Vídeo cortado: ${videoPath}`);
           // Deletar arquivo temporário
           if (fs.existsSync(tempVideoPath)) {
             fs.unlinkSync(tempVideoPath);
@@ -145,7 +168,7 @@ export async function downloadYouTubeVideo(
           resolve();
         })
         .on('error', (err) => {
-          console.error(`[Download] Erro ao cortar vídeo:`, err);
+          logger.error(`[Download] Erro ao cortar vídeo:`, err);
           reject(err);
         })
         .run();
@@ -153,7 +176,7 @@ export async function downloadYouTubeVideo(
   } else {
     // Se não há corte, apenas renomear
     fs.renameSync(tempVideoPath, videoPath);
-    console.log(`[Download] Vídeo salvo: ${videoPath}`);
+    logger.info(`[Download] Vídeo salvo: ${videoPath}`);
   }
 
   // Extrair áudio
@@ -165,7 +188,7 @@ export async function downloadYouTubeVideo(
       .audioFrequency(44100)
       .audioChannels(2)
       .on('end', () => {
-        console.log(`[Download] Áudio extraído: ${audioPath}`);
+        logger.info(`[Download] Áudio extraído: ${audioPath}`);
         resolve();
       })
       .on('error', reject)
@@ -190,10 +213,10 @@ export async function cleanupFiles(filePaths: string[]): Promise<void> {
     try {
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
-        console.log(`[Cleanup] Deletado: ${filePath}`);
+        logger.info(`[Cleanup] Deletado: ${filePath}`);
       }
     } catch (error: any) {
-      console.error(`[Cleanup] Erro ao deletar ${filePath}:`, error.message);
+      logger.error(`[Cleanup] Erro ao deletar ${filePath}:`, error);
     }
   }
 }

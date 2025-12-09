@@ -1,4 +1,4 @@
-import { mysqlTable, int, varchar, text, timestamp, boolean, mysqlEnum } from 'drizzle-orm/mysql-core';
+import { mysqlTable, int, varchar, text, timestamp, boolean, mysqlEnum, json } from 'drizzle-orm/mysql-core';
 
 export const users = mysqlTable('users', {
   id: int('id').autoincrement().primaryKey(),
@@ -9,6 +9,7 @@ export const users = mysqlTable('users', {
   loginMethod: varchar('login_method', { length: 50 }).default('email'), // 'email', 'google', 'github', etc
   role: mysqlEnum('role', ['user', 'admin']).default('user').notNull(),
   credits: int('credits').default(0).notNull(),
+  stripeCustomerId: varchar('stripe_customer_id', { length: 256 }).unique(), // ID do cliente no Stripe
   acceptedTerms: boolean('accepted_terms').default(false),
   acceptedTermsAt: timestamp('accepted_terms_at'),
   language: mysqlEnum('language', ['pt-BR', 'es', 'en']).default('pt-BR'),
@@ -115,6 +116,32 @@ export const genericEmojis = mysqlTable('generic_emojis', {
   videoUrl: text('video_url'),
   category: varchar('category', { length: 50 }),
   isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Tabelas para Stripe (subscriptions e creditLedgers)
+export const subscriptions = mysqlTable('subscriptions', {
+  id: int('id').autoincrement().primaryKey(),
+  userId: int('user_id').notNull(),
+  stripeCustomerId: varchar('stripe_customer_id', { length: 256 }).notNull(),
+  stripeSubscriptionId: varchar('stripe_subscription_id', { length: 256 }).unique().notNull(),
+  priceId: varchar('price_id', { length: 256 }).notNull(),
+  planKey: varchar('plan_key', { length: 256 }).notNull(),
+  billingInterval: varchar('billing_interval', { length: 256 }).notNull(),
+  status: varchar('status', { length: 256 }).notNull(),
+  currentPeriodStart: timestamp('current_period_start'),
+  currentPeriodEnd: timestamp('current_period_end'),
+  cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().onUpdateNow(),
+});
+
+export const creditLedgers = mysqlTable('credit_ledgers', {
+  id: int('id').autoincrement().primaryKey(),
+  userId: int('user_id').notNull(),
+  delta: int('delta').notNull(), // Pode ser positivo (crédito) ou negativo (débito)
+  reason: varchar('reason', { length: 256 }).notNull(), // Motivo: 'Pagamento', 'Uso de crédito', etc
+  meta: json('meta'), // Metadata adicional (invoiceId, planKey, etc)
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

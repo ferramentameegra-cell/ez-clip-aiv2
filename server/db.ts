@@ -41,20 +41,28 @@ export async function getJobById(jobId: number) {
 export async function updateJobStatus(
   jobId: number,
   status: 'pending' | 'downloading' | 'transcribing' | 'cutting' | 'rendering' | 'completed' | 'failed',
-  progress: number,
+  progress?: number,
   errorMessage?: string
 ) {
   const db = await getDb();
   if (!db) return;
 
+  const updateData: any = {
+    status,
+    updatedAt: new Date(),
+  };
+
+  if (progress !== undefined) {
+    updateData.progress = progress;
+  }
+
+  if (errorMessage !== undefined) {
+    updateData.errorMessage = errorMessage || null;
+  }
+
   await db
     .update(jobs)
-    .set({
-      status,
-      progress,
-      errorMessage: errorMessage || null,
-      updatedAt: new Date(),
-    })
+    .set(updateData)
     .where(eq(jobs.id, jobId));
 }
 

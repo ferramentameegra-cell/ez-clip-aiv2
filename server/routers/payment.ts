@@ -3,7 +3,9 @@ import { z } from 'zod';
 import Stripe from 'stripe';
 import { getDb } from '../db';
 import { users } from '../../drizzle/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+import { PLANS, PlanKey } from '../config/plans';
+import { logger } from '../lib/logger';
 
 // Inicializar Stripe (apenas se a chave estiver configurada)
 let stripe: Stripe | null = null;
@@ -13,24 +15,28 @@ if (process.env.STRIPE_SECRET_KEY) {
   });
 }
 
-// Planos de créditos
-export const CREDIT_PLANS = [
-  { id: 'pack_10', name: 'Pack 10 Créditos', credits: 10, price: 29.90, priceId: 'price_10_credits' },
-  { id: 'pack_50', name: 'Pack 50 Créditos', credits: 50, price: 99.90, priceId: 'price_50_credits' },
-  { id: 'pack_100', name: 'Pack 100 Créditos', credits: 100, price: 149.90, priceId: 'price_100_credits' },
-  { id: 'pack_500', name: 'Pack 500 Créditos', credits: 500, price: 499.90, priceId: 'price_500_credits' },
-];
+// Helper para gerar URL absoluta
+function absoluteUrl(path: string) {
+  const baseUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173';
+  return `${baseUrl}${path}`;
+}
 
 export const paymentRouter = router({
   // Obter planos disponíveis
   getPlans: protectedProcedure.query(async () => {
-    return CREDIT_PLANS;
+    return Object.values(PLANS).map(plan => ({
+      key: plan.key,
+      name: plan.name,
+      monthlyCredits: plan.monthlyCredits,
+      prices: plan.prices,
+    }));
   }),
 
-  // Criar sessão de checkout
+  // Criar sessão de checkout (subscription)
   createCheckoutSession: protectedProcedure
     .input(z.object({
-      planId: z.enum(['pack_10', 'pack_50', 'pack_100', 'pack_500']),
+      planKey: z.enum(['starter', 'creator', 'pro']),
+      interval: z.enum(['month', 'year']),
     }))
     .mutation(async ({ input, ctx }) => {
       if (!stripe) {
@@ -38,18 +44,23 @@ export const paymentRouter = router({
       }
 
       const userId = ctx.user.id;
-      const plan = CREDIT_PLANS.find(p => p.id === input.planId);
+      const plan = PLANS[input.planKey as PlanKey];
       
       if (!plan) {
-        throw new Error('Plano não encontrado');
+        throw new Error('Plano inválido');
       }
 
-      // Obter email do usuário
+      const priceId = plan.prices[input.interval]?.stripePriceId;
+      if (!priceId) {
+        throw new Error('ID de preço Stripe não configurado para este plano');
+      }
+
+      // Obter ou criar customer no Stripe
       const db = await getDb();
       if (!db) throw new Error('Database not available');
 
       const [user] = await db
-        .select({ email: users.email })
+        .select({ email: users.email, stripeCustomerId: users.stripeCustomerId, name: users.name })
         .from(users)
         .where(eq(users.id, userId))
         .limit(1);
@@ -58,91 +69,135 @@ export const paymentRouter = router({
         throw new Error('Email do usuário não encontrado');
       }
 
+      let customerId = user.stripeCustomerId;
+
+      // Criar customer se não existir
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: user.name || undefined,
+          metadata: { userId: userId.toString() },
+        });
+        customerId = customer.id;
+        
+        // Salvar customerId no banco
+        await db
+          .update(users)
+          .set({ stripeCustomerId: customerId })
+          .where(eq(users.id, userId));
+      }
+
       // Criar sessão de checkout no Stripe
-      const session = await stripe!.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price_data: {
-              currency: 'brl',
-              product_data: {
-                name: plan.name,
-                description: `${plan.credits} créditos para processar vídeos`,
-              },
-              unit_amount: Math.round(plan.price * 100), // Stripe usa centavos
-            },
-            quantity: 1,
-          },
-        ],
-        mode: 'payment',
-        success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/billing?success=true&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/billing?canceled=true`,
-        customer_email: user.email,
+      const session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        customer: customerId,
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: absoluteUrl('/dashboard?checkout=success'),
+        cancel_url: absoluteUrl('/pricing?checkout=cancel'),
+        allow_promotion_codes: true,
         metadata: {
           userId: userId.toString(),
-          planId: plan.id,
-          credits: plan.credits.toString(),
+          planKey: input.planKey,
         },
       });
 
-      return { sessionId: session.id, url: session.url };
+      logger.info(`[Payment] Checkout session criada para usuário ${userId}, plano ${input.planKey}`);
+
+      return { url: session.url };
     }),
 
-  // Verificar status do pagamento
-  verifyPayment: protectedProcedure
-    .input(z.object({
-      sessionId: z.string(),
-    }))
-    .query(async ({ input, ctx }) => {
+  // Obter subscription atual do usuário
+  getSubscription: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      const { subscriptions: subscriptionsTable } = await import('../../drizzle/schema');
+      
+      const [subscription] = await db
+        .select()
+        .from(subscriptionsTable)
+        .where(eq(subscriptionsTable.userId, ctx.user.id))
+        .limit(1);
+
+      if (!subscription) {
+        return null;
+      }
+
+      return {
+        id: subscription.id,
+        planKey: subscription.planKey,
+        status: subscription.status,
+        currentPeriodStart: subscription.currentPeriodStart,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+      };
+    }),
+
+  // Cancelar subscription
+  cancelSubscription: protectedProcedure
+    .mutation(async ({ ctx }) => {
       if (!stripe) {
         throw new Error('Stripe não está configurado');
       }
 
-      const userId = ctx.user.id;
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
 
-      try {
-        const session = await stripe.checkout.sessions.retrieve(input.sessionId);
+      const { subscriptions: subscriptionsTable } = await import('../../drizzle/schema');
+      
+      const [subscription] = await db
+        .select()
+        .from(subscriptionsTable)
+        .where(eq(subscriptionsTable.userId, ctx.user.id))
+        .limit(1);
 
-        if (session.metadata?.userId !== userId.toString()) {
-          throw new Error('Sessão não pertence a este usuário');
-        }
-
-        if (session.payment_status === 'paid') {
-          // Verificar se os créditos já foram adicionados
-          const db = await getDb();
-          if (!db) throw new Error('Database not available');
-
-          // Adicionar créditos ao usuário
-          const creditsToAdd = parseInt(session.metadata?.credits || '0');
-          
-          await db
-            .update(users)
-            .set({
-              credits: sql`credits + ${creditsToAdd}`,
-            })
-            .where(eq(users.id, userId));
-
-          return {
-            success: true,
-            credits: creditsToAdd,
-            message: 'Pagamento confirmado e créditos adicionados!',
-          };
-        }
-
-        return {
-          success: false,
-          status: session.payment_status,
-          message: 'Pagamento ainda não foi confirmado',
-        };
-      } catch (error: any) {
-        throw new Error(`Erro ao verificar pagamento: ${error.message}`);
+      if (!subscription) {
+        throw new Error('Subscription não encontrada');
       }
+
+      // Cancelar no Stripe
+      await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+        cancel_at_period_end: true,
+      });
+
+      // Atualizar no banco
+      await db
+        .update(subscriptionsTable)
+        .set({ 
+          cancelAtPeriodEnd: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(subscriptionsTable.id, subscription.id));
+
+      logger.info(`[Payment] Subscription ${subscription.id} cancelada pelo usuário ${ctx.user.id}`);
+
+      return { success: true };
     }),
 
-  // Obter histórico de transações (futuro)
-  getTransactions: protectedProcedure.query(async () => {
-    // TODO: Implementar quando tiver tabela de transações
-    return [];
-  }),
+  // Obter histórico de créditos (ledger)
+  getCreditHistory: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      const { creditLedgers } = await import('../../drizzle/schema');
+      const { desc } = await import('drizzle-orm');
+      
+      const history = await db
+        .select()
+        .from(creditLedgers)
+        .where(eq(creditLedgers.userId, ctx.user.id))
+        .orderBy(desc(creditLedgers.createdAt))
+        .limit(50);
+
+      return history.map(entry => ({
+        id: entry.id,
+        delta: entry.delta,
+        reason: entry.reason,
+        meta: entry.meta || null, // Já vem como objeto do Drizzle
+        createdAt: entry.createdAt,
+      }));
+    }),
 });
 

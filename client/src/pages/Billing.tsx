@@ -18,37 +18,26 @@ export function Billing() {
     const params = new URLSearchParams(window.location.search);
     const success = params.get('success');
     const canceled = params.get('canceled');
-    const sessionId = params.get('session_id');
 
-    if (success && sessionId) {
-      // Verificar pagamento usando mutation para poder usar onSuccess
-      const verifyMutation = trpc.payment.verifyPayment.useQuery({ sessionId });
-      
-      verifyMutation.refetch().then((result) => {
-        const data = result.data;
-        if (data?.success && 'credits' in data) {
-          toast.success(`Pagamento confirmado! ${data.credits} créditos adicionados à sua conta.`);
-          // Atualizar localStorage
-          const user = localStorage.getItem('user');
-          if (user) {
-            const userData = JSON.parse(user);
-            userData.credits = (userData.credits || 0) + data.credits;
-            localStorage.setItem('user', JSON.stringify(userData));
-          }
-          // Limpar URL
-          window.history.replaceState({}, '', '/billing');
-        }
-      });
+    if (success) {
+      // Webhook do Stripe já processa o pagamento automaticamente
+      // Apenas mostrar mensagem de sucesso
+      toast.success('Pagamento confirmado! Créditos serão adicionados em breve.');
+      // Limpar URL
+      window.history.replaceState({}, '', '/billing');
     } else if (canceled) {
       toast.info('Pagamento cancelado');
       window.history.replaceState({}, '', '/billing');
     }
   }, []);
 
-  const handlePurchase = async (planId: string) => {
+  const handlePurchase = async (planKey: string, interval: 'month' | 'year' = 'month') => {
     try {
-      setSelectedPlan(planId);
-      const result = await createCheckout.mutateAsync({ planId: planId as any });
+      setSelectedPlan(`${planKey}-${interval}`);
+      const result = await createCheckout.mutateAsync({ 
+        planKey: planKey as 'starter' | 'creator' | 'pro',
+        interval: interval,
+      });
       
       if (result.url) {
         // Redirecionar para checkout do Stripe
@@ -90,15 +79,15 @@ export function Billing() {
           <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {plans.map((plan) => (
             <Card
-              key={plan.id}
+              key={plan.key}
               className={`relative overflow-hidden transition-all hover:shadow-lg ${
-                plan.id === 'pack_100' ? 'border-purple-500 border-2' : ''
+                plan.key === 'creator' ? 'border-purple-500 border-2' : ''
               }`}
             >
-              {plan.id === 'pack_100' && (
+              {plan.key === 'creator' && (
                 <div className="absolute top-0 right-0 bg-purple-600 text-white px-3 py-1 text-xs font-semibold">
                   {t('billing.popular')}
                 </div>
@@ -106,24 +95,39 @@ export function Billing() {
               
               <CardHeader>
                 <CardTitle className="text-xl">{plan.name}</CardTitle>
-                <CardDescription>{plan.credits} {t('billing.credits')}</CardDescription>
+                <CardDescription>{plan.monthlyCredits} {t('billing.credits')}/mês</CardDescription>
               </CardHeader>
               
               <CardContent>
-                <div className="mb-6">
-                  <div className="flex items-baseline">
-                    <span className="text-3xl font-bold">R$</span>
-                    <span className="text-4xl font-bold ml-1">{plan.price.toFixed(2).replace('.', ',')}</span>
+                {/* Mostrar preços mensais e anuais */}
+                <div className="mb-6 space-y-4">
+                  <div>
+                    <div className="flex items-baseline">
+                      <span className="text-2xl font-bold">R$</span>
+                      <span className="text-3xl font-bold ml-1">{plan.prices.month.amount.toFixed(2).replace('.', ',')}</span>
+                      <span className="text-sm text-muted-foreground ml-2">/mês</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      R$ {(plan.prices.month.amount / plan.monthlyCredits).toFixed(2).replace('.', ',')} por crédito
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    R$ {(plan.price / plan.credits).toFixed(2).replace('.', ',')} por crédito
-                  </p>
+                  
+                  <div className="pt-2 border-t">
+                    <div className="flex items-baseline">
+                      <span className="text-xl font-bold">R$</span>
+                      <span className="text-2xl font-bold ml-1">{plan.prices.year.amount.toFixed(2).replace('.', ',')}</span>
+                      <span className="text-sm text-muted-foreground ml-2">/ano</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Economize {Math.round((1 - (plan.prices.year.amount / (plan.prices.month.amount * 12))) * 100)}%
+                    </p>
+                  </div>
                 </div>
 
                 <ul className="space-y-2 mb-6">
                   <li className="flex items-center text-sm">
                     <Check className="h-4 w-4 text-green-600 mr-2" />
-                    {plan.credits} {t('billing.clipsToProcess')}
+                    {plan.monthlyCredits} {t('billing.clipsToProcess')}/mês
                   </li>
                   <li className="flex items-center text-sm">
                     <Check className="h-4 w-4 text-green-600 mr-2" />
@@ -135,24 +139,45 @@ export function Billing() {
                   </li>
                 </ul>
 
-                <Button
-                  className="w-full"
-                  variant={plan.id === 'pack_100' ? 'default' : 'outline'}
-                  onClick={() => handlePurchase(plan.id)}
-                  disabled={createCheckout.isPending && selectedPlan === plan.id}
-                >
-                  {createCheckout.isPending && selectedPlan === plan.id ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('billing.processing')}
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      {t('billing.purchase')}
-                    </>
-                  )}
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    className="w-full"
+                    variant={plan.key === 'creator' ? 'default' : 'outline'}
+                    onClick={() => handlePurchase(plan.key, 'month')}
+                    disabled={createCheckout.isPending && selectedPlan === `${plan.key}-month`}
+                  >
+                    {createCheckout.isPending && selectedPlan === `${plan.key}-month` ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t('billing.processing')}
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Assinar Mensal
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => handlePurchase(plan.key, 'year')}
+                    disabled={createCheckout.isPending && selectedPlan === `${plan.key}-year`}
+                  >
+                    {createCheckout.isPending && selectedPlan === `${plan.key}-year` ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t('billing.processing')}
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Assinar Anual
+                      </>
+                    )}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

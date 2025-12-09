@@ -9,7 +9,7 @@ import { hasEnoughCredits } from '../creditsManager';
 import { getSignedUrl } from '../storage';
 import { PackageSize } from '../../shared/types';
 import { getPackagePreset } from '../presets';
-import { videoQueue } from '../queue';
+import { videoQueue } from '../lib/jobQueue';
 import { generateJobZip } from '../zipGenerator';
 
 // Usando protectedProcedure - requer autenticação
@@ -123,9 +123,28 @@ export const videoRouter = router({
       const jobId = Number(result[0].insertId);
 
       // Adicionar job à fila (processamento assíncrono)
-      await videoQueue.add({ jobId }, {
+      await videoQueue.add({ 
+        jobId,
+        userId,
+        sourceUrl: input.youtubeUrl,
+        startTime: input.startTime,
+        endTime: input.endTime,
+        packageSize: packageSize || undefined,
+        clipDuration: input.clipDuration,
+        withSubtitles: input.withSubtitles,
+        vertical: input.vertical,
+        secondaryContentType: input.secondaryContentType,
+        secondaryContentId: input.secondaryContentId,
+        headline: input.headline,
+        ...preset,
+      }, {
         jobId: jobId.toString(), // ID único para o job
         priority: 1, // Prioridade padrão
+        attempts: 5,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
       });
 
       console.log(`[VideoRouter] Job ${jobId} adicionado à fila`);
