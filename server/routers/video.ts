@@ -61,6 +61,10 @@ export const videoRouter = router({
         throw new Error(`Erro ao validar vídeo: ${error.message}`);
       }
 
+      // Obter conexão do banco
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
       // Determinar packageSize e aplicar preset
       let packageSize: PackageSize | null = null;
       let preset = null;
