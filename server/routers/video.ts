@@ -47,9 +47,16 @@ export const videoRouter = router({
         throw new Error('URL do YouTube inválida');
       }
 
-      // Validar vídeo antes de criar job
+      // OTIMIZAÇÃO: Validação rápida (timeout curto)
       try {
-        const info = await ytdl.getInfo(input.youtubeUrl);
+        const info = await ytdl.getInfo(input.youtubeUrl, {
+          requestOptions: {
+            timeout: 10000, // 10s timeout para validação rápida
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            }
+          }
+        });
         const validation = validateVideo(
           info, 
           input.startTime ?? undefined, 

@@ -550,5 +550,46 @@ export const adminRouter = router({
 
       return { success: true };
     }),
+
+  // Garantir que admins tenham 10000 créditos
+  ensureAdminCredits: adminProcedure
+    .mutation(async () => {
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+
+      const ADMIN_EMAILS = [
+        'daniel.braun@hotmail.com',
+        'josyasborba@hotmail.com',
+      ].map(e => e.toLowerCase());
+
+      const { inArray } = await import('drizzle-orm');
+      
+      // Buscar usuários admin
+      const adminUsers = await db
+        .select()
+        .from(users)
+        .where(inArray(users.email, ADMIN_EMAILS));
+
+      // Atualizar créditos para 10000
+      const updated: string[] = [];
+      for (const user of adminUsers) {
+        if (user.credits < 10000) {
+          await db
+            .update(users)
+            .set({ credits: 10000 })
+            .where(eq(users.id, user.id));
+          
+          updated.push(`${user.email} → 10000 créditos`);
+        }
+      }
+
+      return { 
+        success: true, 
+        message: updated.length > 0 
+          ? `Créditos atualizados: ${updated.join(', ')}`
+          : 'Todos os admins já têm 10000+ créditos',
+        updated 
+      };
+    }),
 });
 

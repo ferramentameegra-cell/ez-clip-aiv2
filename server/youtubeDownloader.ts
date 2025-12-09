@@ -121,15 +121,43 @@ export async function downloadYouTubeVideo(
   
   logger.info(`[Download] ${logMessage}`);
 
-  // Escolher formato (1080p ou menor, com áudio)
-  const format = ytdl.chooseFormat(info.formats, {
-    quality: 'highestvideo',
-    filter: (f: any) => f.container === 'mp4' && f.hasVideo && f.hasAudio && (f.height || 0) <= 1080
-  });
+      // OTIMIZAÇÃO VELOCIDADE: Priorizar 480p-720p (mais rápido que 1080p)
+      // Buscar formatos com vídeo+áudio combinados (menos processamento)
+      let format = ytdl.chooseFormat(info.formats, {
+        quality: 'highestvideo',
+        filter: (f: any) => 
+          f.container === 'mp4' && 
+          f.hasVideo && 
+          f.hasAudio && 
+          (f.height || 0) <= 720 && // 720p máximo para velocidade
+          (f.height || 0) >= 360 && // Mínimo 360p para qualidade aceitável
+          f.audioBitrate && 
+          !f.isLive
+      });
 
-  if (!format) {
-    throw new Error('Formato compatível não encontrado');
-  }
+      // Fallback: Se não encontrar 720p, aceitar até 480p
+      if (!format) {
+        format = ytdl.chooseFormat(info.formats, {
+          quality: 'highestvideo',
+          filter: (f: any) => 
+            f.container === 'mp4' && 
+            f.hasVideo && 
+            f.hasAudio && 
+            (f.height || 0) <= 480
+        });
+      }
+
+      // Último fallback: Qualquer formato com vídeo+áudio (mesmo que separados)
+      if (!format) {
+        format = ytdl.chooseFormat(info.formats, {
+          quality: 'highestvideo',
+          filter: (f: any) => f.container === 'mp4' && f.hasVideo && f.hasAudio
+        });
+      }
+
+      if (!format) {
+        throw new Error('Formato compatível não encontrado');
+      }
 
   // Download completo primeiro (necessário para cortar depois)
   const tempVideoPath = path.join(outputDir, `temp_${videoFilename}`);
@@ -151,17 +179,25 @@ export async function downloadYouTubeVideo(
 
   logger.info(`[Download] Vídeo completo baixado: ${tempVideoPath}`);
 
-  // Se startTime e endTime foram fornecidos, cortar o vídeo
+  // OTIMIZAÇÃO: Corte com preset ultrafast
   if (startTime !== undefined && endTime !== undefined) {
     await new Promise<void>((resolve, reject) => {
       ffmpeg(tempVideoPath)
         .setStartTime(startTime)
         .setDuration(actualDuration)
-        .outputOptions(['-c:v libx264', '-preset fast', '-crf 23', '-c:a aac', '-b:a 128k'])
+        .outputOptions([
+          '-c:v libx264',
+          '-preset ultrafast', // Máxima velocidade (era 'fast')
+          '-crf 28', // Qualidade menor = mais rápido (era 23)
+          '-tune fastdecode',
+          '-movflags +faststart',
+          '-c:a aac',
+          '-b:a 96k', // Bitrate menor = mais rápido (era 128k)
+          '-threads 0', // Usar todos os cores
+        ])
         .output(videoPath)
         .on('end', () => {
           logger.info(`[Download] Vídeo cortado: ${videoPath}`);
-          // Deletar arquivo temporário
           if (fs.existsSync(tempVideoPath)) {
             fs.unlinkSync(tempVideoPath);
           }
@@ -174,19 +210,19 @@ export async function downloadYouTubeVideo(
         .run();
     });
   } else {
-    // Se não há corte, apenas renomear
     fs.renameSync(tempVideoPath, videoPath);
     logger.info(`[Download] Vídeo salvo: ${videoPath}`);
   }
 
-  // Extrair áudio
+  // OTIMIZAÇÃO: Extração de áudio rápida
   await new Promise<void>((resolve, reject) => {
     ffmpeg(videoPath)
       .noVideo()
       .audioCodec('libmp3lame')
-      .audioBitrate('192k')
+      .audioBitrate('128k') // Bitrate menor = mais rápido (era 192k)
       .audioFrequency(44100)
       .audioChannels(2)
+      .outputOptions(['-q:a 4']) // Qualidade média-alta (0-9)
       .on('end', () => {
         logger.info(`[Download] Áudio extraído: ${audioPath}`);
         resolve();

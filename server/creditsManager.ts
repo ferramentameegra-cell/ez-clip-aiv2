@@ -3,6 +3,7 @@ import { users } from '../drizzle/schema';
 import { eq, sql } from 'drizzle-orm';
 
 // Lista de emails de administradores que nunca pagam créditos
+// NOTA: Estes emails devem ter 10000 créditos no banco de dados
 const ADMIN_EMAILS = [
   'daniel.braun@hotmail.com',
   'josyasborba@hotmail.com',
