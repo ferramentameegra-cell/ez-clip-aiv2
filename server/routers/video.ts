@@ -1,7 +1,7 @@
 import { router, protectedProcedure } from '../_core/trpc';
 import { z } from 'zod';
 import { getDb } from '../db';
-import { jobs, clips, users } from '../../drizzle/schema';
+import { jobs, clips } from '../../drizzle/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { isValidYouTubeUrl, validateVideo } from '../youtubeDownloader';
 import ytdl from '@distube/ytdl-core';
