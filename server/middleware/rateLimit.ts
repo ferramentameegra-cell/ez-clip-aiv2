@@ -3,7 +3,7 @@
  * Implementação customizada compatível com express-rate-limit
  */
 
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { bullRedis } from '../lib/jobQueue';
 import { logger } from '../lib/logger';
 
@@ -37,7 +37,7 @@ class RedisStore {
 // Rate limiter global (100 requests por 15 minutos)
 export const globalLimiter = rateLimit({
   store: new RedisStore(bullRedis, 'rl:global:') as any,
-  keyGenerator: (req) => req.ip || 'unknown',
+  keyGenerator: ipKeyGenerator,
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 100, // máximo 100 requests
   message: 'Muitas requisições, tente novamente mais tarde',
@@ -54,7 +54,7 @@ export const jobCreationLimiter = rateLimit({
   store: new RedisStore(bullRedis, 'rl:jobs:') as any,
   keyGenerator: (req) => {
     const userId = (req as any).user?.id;
-    return userId ? `user:${userId}` : `ip:${req.ip || 'unknown'}`;
+    return userId ? `user:${userId}` : `ip:${ipKeyGenerator(req)}`;
   },
   windowMs: 60 * 60 * 1000, // 1 hora
   max: 10, // máximo 10 jobs por hora
@@ -76,7 +76,7 @@ export const uploadLimiter = rateLimit({
   store: new RedisStore(bullRedis, 'rl:upload:') as any,
   keyGenerator: (req) => {
     const userId = (req as any).user?.id;
-    return userId ? `user:${userId}` : `ip:${req.ip || 'unknown'}`;
+    return userId ? `user:${userId}` : `ip:${ipKeyGenerator(req)}`;
   },
   windowMs: 60 * 60 * 1000, // 1 hora
   max: 5, // máximo 5 uploads por hora
@@ -96,7 +96,7 @@ export const uploadLimiter = rateLimit({
 // Rate limiter para autenticação (5 tentativas por 15 minutos)
 export const authLimiter = rateLimit({
   store: new RedisStore(bullRedis, 'rl:auth:') as any,
-  keyGenerator: (req) => req.ip || 'unknown',
+  keyGenerator: ipKeyGenerator,
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 5, // máximo 5 tentativas
   message: 'Muitas tentativas de login. Tente novamente mais tarde.',
