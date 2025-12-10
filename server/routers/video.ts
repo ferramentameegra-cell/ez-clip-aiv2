@@ -3,8 +3,7 @@ import { z } from 'zod';
 import { getDb } from '../db';
 import { jobs, clips } from '../../drizzle/schema';
 import { eq, and, desc } from 'drizzle-orm';
-import { isValidYouTubeUrl, validateVideo } from '../youtubeDownloader';
-import ytdl from '@distube/ytdl-core';
+import { isValidYouTubeUrl } from '../youtubeDownloader';
 import { hasEnoughCredits } from '../creditsManager';
 import { getSignedUrl } from '../storage';
 import { PackageSize } from '../../shared/types';
@@ -49,7 +48,8 @@ export const videoRouter = router({
 
       // OTIMIZAÇÃO CRÍTICA: Validação mínima (só URL básica)
       // Validação completa será feita durante o download (não bloqueia criação do job)
-      if (input.startTime !== undefined && input.endTime !== undefined) {
+      if (input.startTime !== null && input.startTime !== undefined && 
+          input.endTime !== null && input.endTime !== undefined) {
         if (input.startTime < 0) {
           throw new Error('Tempo de início deve ser maior ou igual a 0');
         }

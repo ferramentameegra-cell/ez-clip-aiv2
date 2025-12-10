@@ -102,7 +102,6 @@ export async function downloadYouTubeVideo(
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
           'Accept': '*/*',
         },
-        maxRedirects: 2,
       }
     });
     // Armazenar no cache
@@ -190,7 +189,6 @@ export async function downloadYouTubeVideo(
         'Accept': '*/*',
         'Connection': 'keep-alive',
       },
-      maxRedirects: 2,
     }
   });
   const writeStream = fs.createWriteStream(tempVideoPath, {
