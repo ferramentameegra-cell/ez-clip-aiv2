@@ -56,6 +56,36 @@ function getConnectionPool(): mysql.Pool {
 }
 
 /**
+ * Verifica saúde do pool de conexões
+ */
+export async function checkPoolHealth(): Promise<{ healthy: boolean; message: string; duration: number }> {
+  const startTime = Date.now();
+  
+  try {
+    const pool = getConnectionPool();
+    const connection = await getPoolConnection();
+    
+    // Testar query simples
+    await connection.query('SELECT 1 as test');
+    connection.release();
+    
+    const duration = Date.now() - startTime;
+    return {
+      healthy: true,
+      message: 'Pool de conexões está saudável',
+      duration,
+    };
+  } catch (error: any) {
+    const duration = Date.now() - startTime;
+    return {
+      healthy: false,
+      message: `Erro no pool: ${error.message}`,
+      duration,
+    };
+  }
+}
+
+/**
  * Obtém instância do banco de dados (Drizzle)
  */
 export async function getDb() {
@@ -83,17 +113,30 @@ export async function getDb() {
 
 /**
  * Obtém uma conexão do pool para queries SQL diretas
+ * Com timeout para evitar travamento
  */
 export async function getPoolConnection(): Promise<mysql.PoolConnection> {
   const pool = getConnectionPool();
   
   try {
     const startTime = Date.now();
-    const connection = await pool.getConnection();
+    console.log('[DB] 🔄 Tentando obter conexão do pool...');
+    
+    // Criar promise com timeout
+    const connectionPromise = pool.getConnection();
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Timeout ao obter conexão do pool (10s)'));
+      }, 10000); // 10 segundos de timeout
+    });
+    
+    const connection = await Promise.race([connectionPromise, timeoutPromise]);
     const duration = Date.now() - startTime;
     
-    if (duration > 1000) {
-      console.warn(`[DB] ⚠️ Conexão do pool demorou ${duration}ms (pode indicar pool esgotado)`);
+    console.log(`[DB] ✅ Conexão obtida do pool: ${duration}ms`);
+    
+    if (duration > 2000) {
+      console.warn(`[DB] ⚠️ Conexão do pool demorou ${duration}ms (pode indicar pool esgotado ou banco lento)`);
     }
     
     return connection;
@@ -101,7 +144,16 @@ export async function getPoolConnection(): Promise<mysql.PoolConnection> {
     console.error('[DB] ❌ Erro ao obter conexão do pool:', {
       error: error.message,
       code: error.code,
+      errno: error.errno,
+      sqlState: error.sqlState,
     });
+    
+    // Se for timeout, fornecer mais informações
+    if (error.message?.includes('Timeout')) {
+      console.error('[DB] ⚠️ TIMEOUT: Pool pode estar esgotado ou banco não está respondendo');
+      console.error('[DB] ⚠️ Verifique: DATABASE_URL, conexão com banco, número de conexões ativas');
+    }
+    
     throw error;
   }
 }

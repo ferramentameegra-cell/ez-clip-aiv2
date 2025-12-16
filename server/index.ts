@@ -157,8 +157,28 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Health check
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Health check com verificação de banco
+app.get('/health', async (_req, res) => {
+  try {
+    const { checkPoolHealth } = await import('./db');
+    const dbHealth = await checkPoolHealth();
+    
+    res.json({ 
+      status: dbHealth.healthy ? 'ok' : 'degraded',
+      timestamp: new Date().toISOString(),
+      database: {
+        healthy: dbHealth.healthy,
+        message: dbHealth.message,
+        responseTime: `${dbHealth.duration}ms`,
+      },
+    });
+  } catch (error: any) {
+    res.status(503).json({ 
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      error: error.message,
+    });
+  }
 });
 
 // Endpoint para obter informações do vídeo do YouTube (público, não requer autenticação)

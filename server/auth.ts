@@ -70,7 +70,10 @@ export async function getUserByEmail(email: string) {
 
     // Executar query com timeout
     const queryStartTime = Date.now();
-    const [rows] = await connection.execute(
+    console.log('[Auth] 🔍 Executando query SQL...');
+    
+    // Criar promise com timeout para a query
+    const queryPromise = connection.execute(
       `SELECT id, open_id, name, email, password_hash, login_method, role, credits, 
        accepted_terms, accepted_terms_at, language, avatar_url, bio,
        tiktok_username, instagram_username, youtube_channel_id, youtube_shorts_enabled,
@@ -80,8 +83,20 @@ export async function getUserByEmail(email: string) {
        FROM users WHERE email = ? LIMIT 1`,
       [email]
     );
+    
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Timeout na query SQL (10s)'));
+      }, 10000); // 10 segundos de timeout na query
+    });
+    
+    const [rows] = await Promise.race([queryPromise, timeoutPromise]);
     const queryDuration = Date.now() - queryStartTime;
     console.log('[Auth] ✅ Query executada:', `${queryDuration}ms`);
+    
+    if (queryDuration > 2000) {
+      console.warn(`[Auth] ⚠️ Query demorou ${queryDuration}ms (pode indicar banco lento ou sem índice)`);
+    }
 
     // Liberar conexão de volta para o pool
     if (connection) {
