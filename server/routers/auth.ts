@@ -52,6 +52,15 @@ export const authRouter = router({
       const startTime = Date.now();
       console.log('[Auth] 🔐 Iniciando login:', { email: input.email });
       
+      // Validar DATABASE_URL antes de processar
+      if (!process.env.DATABASE_URL) {
+        console.error('[Auth] ❌ DATABASE_URL não configurada');
+        const error = new Error('Serviço temporariamente indisponível. Tente novamente em alguns instantes.');
+        (error as any).code = 'SERVICE_UNAVAILABLE';
+        (error as any).httpStatus = 503;
+        throw error;
+      }
+      
       try {
         console.log('[Auth] 📞 Chamando loginUser...');
         const result = await loginUser(input.email, input.password);
@@ -82,15 +91,48 @@ export const authRouter = router({
         return response;
       } catch (error: any) {
         const duration = Date.now() - startTime;
-        console.error('[Auth] ❌ Erro no login:', {
-          error: error.message,
-          stack: error.stack,
-          duration: `${duration}ms`,
-          email: input.email,
-        });
         
-        // Re-throw com mensagem clara
-        throw new Error(error.message || 'Erro ao fazer login');
+        // Identificar tipo de erro para retornar status HTTP adequado
+        let httpStatus = 500;
+        let errorMessage = 'Erro ao fazer login';
+        
+        if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || 
+            error.code === 'ENOTFOUND' || error.message?.includes('timeout') ||
+            error.code === 'PROTOCOL_CONNECTION_LOST') {
+          // Erro de conexão com banco
+          httpStatus = 503;
+          errorMessage = 'Serviço temporariamente indisponível. Tente novamente em alguns instantes.';
+          console.error('[Auth] ❌ Erro de conexão com banco de dados:', {
+            error: error.message,
+            code: error.code,
+            duration: `${duration}ms`,
+            email: input.email,
+          });
+        } else if (error.message === 'Email ou senha incorretos' || 
+                   error.message === 'Conta criada com outro método de login') {
+          // Erro de autenticação (não é erro do servidor)
+          httpStatus = 401;
+          errorMessage = error.message;
+          console.warn('[Auth] ⚠️ Credenciais inválidas:', {
+            email: input.email,
+            duration: `${duration}ms`,
+          });
+        } else {
+          // Outros erros
+          console.error('[Auth] ❌ Erro no login:', {
+            error: error.message,
+            code: error.code,
+            stack: error.stack?.substring(0, 500),
+            duration: `${duration}ms`,
+            email: input.email,
+          });
+        }
+        
+        // Criar erro com status HTTP
+        const tRPCError = new Error(errorMessage);
+        (tRPCError as any).code = error.code || 'INTERNAL_SERVER_ERROR';
+        (tRPCError as any).httpStatus = httpStatus;
+        throw tRPCError;
       }
     }),
 

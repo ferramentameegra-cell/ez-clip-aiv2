@@ -46,26 +46,31 @@ export function verifyToken(token: string): { userId: number; email: string } | 
 
 /**
  * Busca usuário por email
- * Usa SQL direto para melhor performance e evitar problemas com colunas
+ * Usa pool de conexões para melhor performance
  */
 export async function getUserByEmail(email: string) {
   const startTime = Date.now();
   console.log('[Auth] 🔍 getUserByEmail chamado:', email);
   
+  // Validar DATABASE_URL antes de tentar conectar
+  if (!process.env.DATABASE_URL) {
+    console.error('[Auth] ❌ DATABASE_URL não configurada');
+    throw new Error('Configuração de banco de dados não encontrada');
+  }
+  
+  const { getPoolConnection } = await import('./db');
+  let connection: any = null;
+  
   try {
-    // Usar SQL direto desde o início para melhor performance
-    const connection = await import('mysql2/promise');
-    
+    // Obter conexão do pool (reutilizável)
     const connectStartTime = Date.now();
-    const mysqlDb = await connection.default.createConnection({
-      uri: process.env.DATABASE_URL,
-      connectTimeout: 10000, // 10 segundos de timeout na conexão
-    });
+    connection = await getPoolConnection();
     const connectDuration = Date.now() - connectStartTime;
-    console.log('[Auth] ✅ Conexão MySQL estabelecida:', `${connectDuration}ms`);
+    console.log('[Auth] ✅ Conexão obtida do pool:', `${connectDuration}ms`);
 
+    // Executar query com timeout
     const queryStartTime = Date.now();
-    const [rows] = await mysqlDb.execute(
+    const [rows] = await connection.execute(
       `SELECT id, open_id, name, email, password_hash, login_method, role, credits, 
        accepted_terms, accepted_terms_at, language, avatar_url, bio,
        tiktok_username, instagram_username, youtube_channel_id, youtube_shorts_enabled,
@@ -78,7 +83,10 @@ export async function getUserByEmail(email: string) {
     const queryDuration = Date.now() - queryStartTime;
     console.log('[Auth] ✅ Query executada:', `${queryDuration}ms`);
 
-    await mysqlDb.end();
+    // Liberar conexão de volta para o pool
+    if (connection) {
+      connection.release();
+    }
 
     const row = (rows as any[])[0];
     const totalDuration = Date.now() - startTime;
@@ -129,19 +137,21 @@ export async function getUserByEmail(email: string) {
     
     return user;
   } catch (error: any) {
+    // Sempre liberar conexão em caso de erro
+    if (connection) {
+      connection.release();
+    }
+    
     const totalDuration = Date.now() - startTime;
     console.error('[Auth] ❌ Erro em getUserByEmail:', {
       error: error.message,
       code: error.code,
+      errno: error.errno,
+      sqlState: error.sqlState,
       duration: `${totalDuration}ms`,
     });
     
-    // Se for erro de conexão, retornar null ao invés de throw
-    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.message?.includes('timeout')) {
-      console.error('[Auth] ❌ Erro de conexão com banco de dados');
-      return null;
-    }
-    
+    // Re-throw para que o router possa tratar adequadamente
     throw error;
   }
 }

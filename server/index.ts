@@ -125,9 +125,12 @@ app.use('/trpc', async (req, res) => {
       createContext: () => createContext(req),
       onError: ({ error, path, type }) => {
         const duration = Date.now() - requestStartTime;
+        const httpStatus = (error as any).httpStatus || 500;
+        
         logger.error(`[tRPC] ❌ Erro em ${path} (${type}) após ${duration}ms:`, {
           message: error.message,
           code: error.code,
+          httpStatus,
           cause: error.cause,
           stack: error.stack?.substring(0, 500), // Primeiros 500 caracteres do stack
         });
@@ -135,6 +138,14 @@ app.use('/trpc', async (req, res) => {
         // Garantir que erros sejam serializáveis
         if (error.cause) {
           logger.error('[tRPC] Error cause:', error.cause);
+        }
+        
+        // Se for erro de banco de dados, logar detalhes adicionais
+        if (error.message?.includes('timeout') || 
+            error.message?.includes('ECONNREFUSED') ||
+            error.message?.includes('ETIMEDOUT') ||
+            (error as any).code === 'PROTOCOL_CONNECTION_LOST') {
+          logger.error('[tRPC] ⚠️ Erro de conexão com banco de dados detectado');
         }
       },
     });

@@ -3,29 +3,102 @@ import mysql from 'mysql2/promise';
 import * as schema from '../drizzle/schema';
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
+let connectionPool: mysql.Pool | null = null;
 
 /**
- * Obtém instância do banco de dados
+ * Obtém pool de conexões MySQL (reutilizável e eficiente)
+ */
+function getConnectionPool(): mysql.Pool {
+  if (connectionPool) return connectionPool;
+
+  const databaseUrl = process.env.DATABASE_URL;
+  
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL não está configurada');
+  }
+
+  console.log('[DB] 🔌 Criando pool de conexões MySQL...');
+  
+  // Parse da URL para extrair configurações
+  const url = new URL(databaseUrl.replace(/^mysql:\/\//, 'http://'));
+  const host = url.hostname;
+  const port = parseInt(url.port || '3306');
+  const user = url.username;
+  const password = url.password;
+  const database = url.pathname.replace(/^\//, '');
+
+  connectionPool = mysql.createPool({
+    host,
+    port,
+    user,
+    password,
+    database,
+    waitForConnections: true,
+    connectionLimit: 10, // Máximo de conexões no pool
+    queueLimit: 0, // Sem limite de fila
+    connectTimeout: 10000, // 10 segundos para conectar
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 0,
+  });
+
+  // Event handlers para monitoramento
+  connectionPool.on('connection', () => {
+    console.log('[DB] ✅ Nova conexão estabelecida no pool');
+  });
+
+  // Tratar erros do pool
+  (connectionPool as any).on('error', (err: Error) => {
+    console.error('[DB] ❌ Erro no pool de conexões:', err);
+  });
+
+  console.log('[DB] ✅ Pool de conexões criado');
+  return connectionPool;
+}
+
+/**
+ * Obtém instância do banco de dados (Drizzle)
  */
 export async function getDb() {
   if (dbInstance) return dbInstance;
 
   try {
     const startTime = Date.now();
-    console.log('[DB] 🔌 Criando conexão com banco de dados...');
+    console.log('[DB] 🔌 Inicializando Drizzle com pool...');
     
-    const connection = await mysql.createConnection({
-      uri: process.env.DATABASE_URL,
-      connectTimeout: 10000, // 10 segundos de timeout na conexão
-    });
+    const pool = getConnectionPool();
     
     const duration = Date.now() - startTime;
-    console.log('[DB] ✅ Conexão estabelecida:', `${duration}ms`);
+    console.log('[DB] ✅ Drizzle inicializado:', `${duration}ms`);
 
-    dbInstance = drizzle(connection, { schema, mode: 'default' });
+    dbInstance = drizzle(pool, { schema, mode: 'default' });
     return dbInstance;
   } catch (error: any) {
-    console.error('[DB] ❌ Erro ao conectar com banco de dados:', {
+    console.error('[DB] ❌ Erro ao inicializar Drizzle:', {
+      error: error.message,
+      code: error.code,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Obtém uma conexão do pool para queries SQL diretas
+ */
+export async function getPoolConnection(): Promise<mysql.PoolConnection> {
+  const pool = getConnectionPool();
+  
+  try {
+    const startTime = Date.now();
+    const connection = await pool.getConnection();
+    const duration = Date.now() - startTime;
+    
+    if (duration > 1000) {
+      console.warn(`[DB] ⚠️ Conexão do pool demorou ${duration}ms (pode indicar pool esgotado)`);
+    }
+    
+    return connection;
+  } catch (error: any) {
+    console.error('[DB] ❌ Erro ao obter conexão do pool:', {
       error: error.message,
       code: error.code,
     });
