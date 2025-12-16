@@ -17,36 +17,11 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ============================================
-// INICIALIZAÇÃO GLOBAL DO POOL DE CONEXÕES (ASSÍNCRONA)
+// INICIALIZAÇÃO DO POOL DE CONEXÕES (LAZY)
 // ============================================
-// Pool é inicializado de forma assíncrona para não bloquear o startup
-// Isso evita que o Railway mate o processo se o banco demorar para responder
-logger.info('[Server] 🔌 Inicializando pool de conexões globalmente (assíncrono)...');
-
-// Inicializar pool de forma assíncrona (não bloqueia startup)
-(async () => {
-  try {
-    // Tentar inicializar o pool, mas não bloquear se falhar
-    getConnectionPool();
-    logger.info('[Server] ✅ Pool de conexões criado (será conectado na primeira requisição)');
-    
-    // Testar conexão de forma assíncrona (não bloqueia)
-    setTimeout(async () => {
-      try {
-        const { getPoolConnection } = await import('./db');
-        const connection = await getPoolConnection();
-        connection.release();
-        logger.info('[Server] ✅ Pool de conexões testado e funcionando');
-      } catch (testError: any) {
-        logger.warn('[Server] ⚠️ Pool criado mas conexão de teste falhou (pode ser normal se banco ainda não está pronto):', testError.message);
-      }
-    }, 1000); // Testar após 1 segundo
-  } catch (error: any) {
-    // Não matar o processo se pool falhar na criação
-    // O pool será criado na primeira requisição
-    logger.warn('[Server] ⚠️ Erro ao criar pool (será criado na primeira requisição):', error.message);
-  }
-})();
+// Pool será criado apenas quando necessário (na primeira requisição)
+// Isso garante que o servidor inicie imediatamente sem esperar banco
+logger.info('[Server] 🔌 Pool de conexões será criado na primeira requisição (lazy initialization)');
 
 // Middlewares
 app.use(cors({
@@ -280,19 +255,29 @@ app.use((_req, res) => {
   });
 });
 
-// Iniciar scheduler para publicações agendadas
-import { startScheduler } from './scheduler';
-import './lib/jobQueue'; // Importar para inicializar a fila
-
-startScheduler();
-
-// Inicializar fila de processamento de vídeo
-logger.info('[Queue] Fila de processamento de vídeo inicializada');
-
-// Iniciar servidor
+// Iniciar servidor IMEDIATAMENTE (sem esperar nada)
 app.listen(PORT, () => {
   logger.info(`🚀 Backend rodando em http://localhost:${PORT}`);
   logger.info(`📡 tRPC endpoint: http://localhost:${PORT}/trpc`);
   logger.info(`❤️  Health check: http://localhost:${PORT}/health`);
   logger.info(`🔐 Webhook Stripe: http://localhost:${PORT}/api/webhooks/stripe`);
+  
+  // Inicializar serviços APÓS o servidor estar rodando (não bloqueia startup)
+  setTimeout(() => {
+    try {
+      import('./lib/jobQueue').then(() => {
+        logger.info('[Queue] Fila de processamento de vídeo inicializada');
+      }).catch((err) => {
+        logger.warn('[Queue] Erro ao inicializar fila (não crítico):', err.message);
+      });
+      
+      import('./scheduler').then(({ startScheduler }) => {
+        startScheduler();
+      }).catch((err) => {
+        logger.warn('[Scheduler] Erro ao inicializar scheduler (não crítico):', err.message);
+      });
+    } catch (error: any) {
+      logger.warn('[Server] Erro ao inicializar serviços (não crítico):', error.message);
+    }
+  }, 1000); // Inicializar após 1 segundo
 });
