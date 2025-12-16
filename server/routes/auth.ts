@@ -192,20 +192,25 @@ router.post('/login', async (req: Request, res: Response) => {
     logger.info(`[Auth] [${requestId}] 🔐 Verificando senha...`);
     
     const passwordStartTime = Date.now();
-    const passwordPromise = bcrypt.compare(password, user.password_hash);
-    const passwordTimeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
-        reject(new Error('Password verification timeout (1s)'));
-      }, 1000);
-    });
-
     let passwordValid: boolean;
+    
     try {
+      // bcrypt.compare é rápido, mas adicionar timeout de segurança
+      const passwordPromise = bcrypt.compare(password, user.password_hash);
+      const passwordTimeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Password verification timeout (500ms)'));
+        }, 500);
+      });
+
       passwordValid = await Promise.race([passwordPromise, passwordTimeoutPromise]);
-    } catch (error) {
+    } catch (error: any) {
       clearTimeout(timeoutId);
       const duration = Date.now() - startTime;
-      logger.error(`[Auth] [${requestId}] ❌ Erro ao verificar senha: ${duration}ms`);
+      logger.error(`[Auth] [${requestId}] ❌ Erro ao verificar senha:`, {
+        error: error.message,
+        duration: `${duration}ms`,
+      });
       return res.status(500).json({
         success: false,
         error: 'Erro ao verificar senha',
