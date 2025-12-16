@@ -248,3 +248,4 @@ if (error.message === 'Email ou senha incorretos') {
 
 O timeout deve ser resolvido após o deploy. O pool de conexões garante que as requisições sejam muito mais rápidas e confiáveis.
 
+

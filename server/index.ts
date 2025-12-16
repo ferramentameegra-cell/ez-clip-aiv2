@@ -153,7 +153,7 @@ app.use('/trpc', async (req, res) => {
     const duration = Date.now() - requestStartTime;
     logger.info(`[tRPC] 📤 Response enviado: ${response.status} (${duration}ms)`);
     
-    // Copiar status e headers
+    // Copiar status e headers ANTES de ler o body
     res.status(response.status);
     response.headers.forEach((value, key) => {
       // Evitar conflitos com headers já definidos
@@ -162,11 +162,18 @@ app.use('/trpc', async (req, res) => {
       }
     });
     
-    // Usar arrayBuffer() ao invés de text() para evitar problemas com stream
-    // arrayBuffer() também consome o stream, mas é mais seguro para binários
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    res.send(buffer);
+    // Fazer streaming direto do body sem consumir o stream
+    // Isso evita o erro "body stream already read" no cliente tRPC
+    if (response.body) {
+      // Converter ReadableStream do Fetch API para Node.js Readable
+      // Readable.fromWeb() está disponível no Node.js 18+
+      const { Readable } = await import('stream');
+      const nodeStream = Readable.fromWeb(response.body as any);
+      nodeStream.pipe(res);
+    } else {
+      // Se não houver body, apenas finalizar
+      res.end();
+    }
   } catch (error: any) {
     logger.error('[tRPC] Erro ao processar request:', error);
     logger.error('[tRPC] Stack:', error.stack);
