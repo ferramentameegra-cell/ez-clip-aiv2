@@ -17,18 +17,35 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ============================================
-// INICIALIZAÇÃO GLOBAL DO POOL DE CONEXÕES
+// INICIALIZAÇÃO GLOBAL DO POOL DE CONEXÕES (ASSÍNCRONA)
 // ============================================
-// Pool é inicializado ANTES de qualquer rota
-// Isso garante que não há criação de conexão dentro das rotas
-logger.info('[Server] 🔌 Inicializando pool de conexões globalmente...');
-try {
-  getConnectionPool();
-  logger.info('[Server] ✅ Pool de conexões inicializado globalmente');
-} catch (error: any) {
-  logger.error('[Server] ❌ Erro ao inicializar pool:', error.message);
-  process.exit(1);
-}
+// Pool é inicializado de forma assíncrona para não bloquear o startup
+// Isso evita que o Railway mate o processo se o banco demorar para responder
+logger.info('[Server] 🔌 Inicializando pool de conexões globalmente (assíncrono)...');
+
+// Inicializar pool de forma assíncrona (não bloqueia startup)
+(async () => {
+  try {
+    // Tentar inicializar o pool, mas não bloquear se falhar
+    const pool = getConnectionPool();
+    logger.info('[Server] ✅ Pool de conexões criado (será conectado na primeira requisição)');
+    
+    // Testar conexão de forma assíncrona (não bloqueia)
+    setTimeout(async () => {
+      try {
+        const connection = await getPoolConnection();
+        connection.release();
+        logger.info('[Server] ✅ Pool de conexões testado e funcionando');
+      } catch (testError: any) {
+        logger.warn('[Server] ⚠️ Pool criado mas conexão de teste falhou (pode ser normal se banco ainda não está pronto):', testError.message);
+      }
+    }, 1000); // Testar após 1 segundo
+  } catch (error: any) {
+    // Não matar o processo se pool falhar na criação
+    // O pool será criado na primeira requisição
+    logger.warn('[Server] ⚠️ Erro ao criar pool (será criado na primeira requisição):', error.message);
+  }
+})();
 
 // Middlewares
 app.use(cors({
