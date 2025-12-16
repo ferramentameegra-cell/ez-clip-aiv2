@@ -120,8 +120,12 @@ app.use('/trpc', async (req, res) => {
       req: fetchRequest,
       router: appRouter,
       createContext: () => createContext(req),
-      onError: ({ error, path }) => {
-        logger.error(`[tRPC] Erro em ${path}:`, error);
+      onError: ({ error, path, type }) => {
+        logger.error(`[tRPC] Erro em ${path} (${type}):`, error);
+        // Garantir que erros sejam serializáveis
+        if (error.cause) {
+          logger.error('[tRPC] Error cause:', error.cause);
+        }
       },
     });
     

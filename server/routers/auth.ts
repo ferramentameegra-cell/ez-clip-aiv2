@@ -28,14 +28,15 @@ export const authRouter = router({
       const { generateToken } = await import('../auth');
       const token = generateToken(user.id, user.email || '');
 
+      // Garantir que todos os valores sejam serializáveis
       return {
         user: {
           id: user.id,
-          email: user.email,
-          name: user.name,
-          credits: user.credits,
-          language: user.language,
-          avatarUrl: user.avatarUrl,
+          email: user.email || null,
+          name: user.name || null,
+          credits: user.credits ?? 0,
+          language: user.language || 'pt-BR',
+          avatarUrl: user.avatarUrl || null,
         },
         token,
       };
@@ -48,7 +49,23 @@ export const authRouter = router({
       password: z.string(),
     }))
     .mutation(async ({ input }) => {
-      return await loginUser(input.email, input.password);
+      try {
+        const result = await loginUser(input.email, input.password);
+        // Garantir que todos os valores sejam serializáveis
+        return {
+          user: {
+            id: result.user.id,
+            email: result.user.email || null,
+            name: result.user.name || null,
+            credits: result.user.credits ?? 0,
+            language: result.user.language || 'pt-BR',
+            avatarUrl: result.user.avatarUrl || null,
+          },
+          token: result.token,
+        };
+      } catch (error: any) {
+        throw new Error(error.message || 'Erro ao fazer login');
+      }
     }),
 
   // Obter perfil do usuário

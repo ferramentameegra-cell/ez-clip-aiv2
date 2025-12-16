@@ -27,6 +27,20 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
             const token = localStorage.getItem('token');
             return token ? { authorization: `Bearer ${token}` } : {};
           },
+          fetch: async (url, options) => {
+            try {
+              const response = await fetch(url, options);
+              // Verificar se a resposta é válida
+              if (!response.ok && response.status >= 500) {
+                const text = await response.text();
+                console.error('[tRPC] Server error:', text);
+              }
+              return response;
+            } catch (error) {
+              console.error('[tRPC] Fetch error:', error);
+              throw error;
+            }
+          },
         }),
       ],
     });

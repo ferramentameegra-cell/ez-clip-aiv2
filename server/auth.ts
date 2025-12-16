@@ -275,11 +275,11 @@ export async function loginUser(email: string, password: string) {
   return {
     user: {
       id: user.id,
-      email: user.email,
-      name: user.name,
-      credits: user.credits,
-      language: user.language,
-      avatarUrl: user.avatarUrl,
+      email: user.email || null,
+      name: user.name || null,
+      credits: user.credits ?? 0,
+      language: user.language || 'pt-BR',
+      avatarUrl: user.avatarUrl || null,
     },
     token,
   };
