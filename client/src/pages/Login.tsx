@@ -1,4 +1,9 @@
-import { useState } from 'react';
+/**
+ * Página de Login - Nova Estrutura Simplificada
+ * Sem complexidade desnecessária, foco em funcionalidade
+ */
+
+import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -7,8 +12,26 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
-import { trpc } from '@/lib/trpc';
 import { useTheme } from '@/contexts/ThemeContext';
+
+const FRONTEND_TIMEOUT = 10000; // 10 segundos
+
+interface LoginResponse {
+  success: boolean;
+  data?: {
+    user: {
+      id: number;
+      email: string;
+      name: string;
+      credits: number;
+      language: string;
+      avatarUrl: string | null;
+    };
+    token: string;
+  };
+  error?: string;
+  requestId?: string;
+}
 
 export function Login() {
   const { t } = useTranslation();
@@ -18,46 +41,14 @@ export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{
-    email?: string;
-    password?: string;
-  }>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
-  const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: (data) => {
-      console.log('[Login] ✅ Sucesso:', { hasToken: !!data.token, userId: data.user.id });
-      
-      // Salvar dados
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      toast.success(t('login.loginSuccess'));
-      
-      // Redirecionar
-      setTimeout(() => {
-        setLocation('/onboarding');
-      }, 100);
-    },
-    onError: (error) => {
-      console.error('[Login] ❌ Erro:', error);
-      
-      let message = t('login.loginError');
-      
-      if (error.message?.includes('Email ou senha incorretos')) {
-        message = 'Email ou senha incorretos';
-      } else if (error.message?.includes('Timeout')) {
-        message = 'A requisição demorou muito. Tente novamente.';
-      } else if (error.message?.includes('indisponível')) {
-        message = 'Serviço temporariamente indisponível. Tente novamente em alguns instantes.';
-      } else if (error.message) {
-        message = error.message;
-      }
-      
-      toast.error(message);
-    },
-  });
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isSubmittingRef = useRef(false);
 
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
 
     if (!email.trim()) {
@@ -77,17 +68,136 @@ export function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isSubmittingRef.current || isLoading) {
+      return;
+    }
+
     if (!validateForm()) {
       return;
     }
 
-    loginMutation.mutate({
-      email: email.trim().toLowerCase(),
-      password,
-    });
-  };
+    // Limpar requisição anterior
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
 
-  const isLoading = loginMutation.isPending;
+    // Nova requisição
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    isSubmittingRef.current = true;
+    setIsLoading(true);
+
+    const startTime = Date.now();
+
+    // Timeout do frontend
+    timeoutRef.current = setTimeout(() => {
+      if (!controller.signal.aborted) {
+        controller.abort();
+        setIsLoading(false);
+        isSubmittingRef.current = false;
+        toast.error('A requisição demorou muito. Verifique sua conexão e tente novamente.');
+      }
+    }, FRONTEND_TIMEOUT);
+
+    try {
+      // Obter URL do backend
+      // @ts-ignore
+      const backendUrl = import.meta.env?.VITE_TRPC_URL?.replace('/trpc', '') || 
+                        (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001');
+
+      const response = await fetch(`${backendUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+        signal: controller.signal,
+      });
+
+      // Limpar timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
+      const duration = Date.now() - startTime;
+      console.log(`[Login] Resposta recebida: ${response.status} (${duration}ms)`);
+
+      // Verificar cancelamento
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      const data: LoginResponse = await response.json();
+
+      // Verificar cancelamento novamente
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      if (!response.ok || !data.success || !data.data) {
+        const errorMessage = data.error || 'Erro ao fazer login';
+        setIsLoading(false);
+        isSubmittingRef.current = false;
+        toast.error(errorMessage);
+        return;
+      }
+
+      // Sucesso - salvar dados
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      try {
+        localStorage.setItem('token', data.data.token);
+        localStorage.setItem('user', JSON.stringify(data.data.user));
+      } catch (storageError) {
+        console.error('[Login] Erro ao salvar no localStorage:', storageError);
+        toast.error('Erro ao salvar dados. Tente novamente.');
+        setIsLoading(false);
+        isSubmittingRef.current = false;
+        return;
+      }
+
+      setIsLoading(false);
+      isSubmittingRef.current = false;
+      toast.success(t('login.loginSuccess'));
+
+      // Redirecionar
+      setTimeout(() => {
+        if (!controller.signal.aborted) {
+          setLocation('/onboarding');
+        }
+      }, 200);
+
+    } catch (error: any) {
+      // Limpar timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
+      setIsLoading(false);
+      isSubmittingRef.current = false;
+
+      // Tratar AbortError
+      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+        // Timeout já mostrou mensagem
+        if (Date.now() - startTime < FRONTEND_TIMEOUT) {
+          toast.error('A requisição foi cancelada. Tente novamente.');
+        }
+        return;
+      }
+
+      // Outros erros
+      console.error('[Login] Erro na requisição:', error);
+      toast.error('Erro de conexão. Verifique sua internet e tente novamente.');
+    }
+  };
 
   return (
     <div className={`min-h-screen flex items-center justify-center p-4 ${isDark ? 'bg-slate-900' : 'bg-gray-50'}`}>
@@ -187,15 +297,6 @@ export function Login() {
                 t('login.form.submit')
               )}
             </Button>
-            
-            {/* Mensagem de erro */}
-            {loginMutation.isError && (
-              <div className="mt-2 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                <p className="text-sm text-red-600 dark:text-red-400">
-                  {loginMutation.error?.message || 'Erro ao fazer login. Tente novamente.'}
-                </p>
-              </div>
-            )}
           </form>
 
           {/* Link para Signup */}

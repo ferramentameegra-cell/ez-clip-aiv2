@@ -27,12 +27,13 @@ logger.info('[Server] 🔌 Inicializando pool de conexões globalmente (assíncr
 (async () => {
   try {
     // Tentar inicializar o pool, mas não bloquear se falhar
-    const pool = getConnectionPool();
+    getConnectionPool();
     logger.info('[Server] ✅ Pool de conexões criado (será conectado na primeira requisição)');
     
     // Testar conexão de forma assíncrona (não bloqueia)
     setTimeout(async () => {
       try {
+        const { getPoolConnection } = await import('./db');
         const connection = await getPoolConnection();
         connection.release();
         logger.info('[Server] ✅ Pool de conexões testado e funcionando');
