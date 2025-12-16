@@ -126,7 +126,7 @@ export function LoginNew() {
       timestamp: new Date().toISOString(),
     });
 
-    // Timeout do frontend (8 segundos - mais tempo que backend para dar margem)
+    // Timeout do frontend (10 segundos - mais tempo que backend para dar margem)
     timeoutRef.current = setTimeout(() => {
       if (!controller.signal.aborted) {
         const duration = Date.now() - startTime;
@@ -136,7 +136,7 @@ export function LoginNew() {
         isSubmittingRef.current = false;
         toast.error('A requisição demorou muito. Verifique sua conexão e tente novamente.');
       }
-    }, 8000); // 8 segundos (backend tem 3s, então 8s é seguro)
+    }, LOGIN_TIMEOUT_MS); // 10 segundos (backend tem 3s, então 10s é seguro)
 
     try {
       // Obter URL do backend
