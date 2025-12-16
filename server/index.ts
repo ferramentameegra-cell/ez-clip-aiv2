@@ -8,7 +8,6 @@ import { Context } from './_core/trpc';
 import { globalLimiter, authLimiter } from './middleware/rateLimit';
 import { logger } from './lib/logger';
 import { Readable } from 'stream';
-import { getConnectionPool } from './db';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
