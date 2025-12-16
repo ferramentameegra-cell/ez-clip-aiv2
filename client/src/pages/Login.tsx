@@ -102,17 +102,13 @@ export function Login() {
     }, FRONTEND_TIMEOUT);
 
     try {
-      // Obter URL do backend
+      // Obter URL do backend - usar Railway em desenvolvimento local
       // @ts-ignore
-      let backendUrl = import.meta.env?.VITE_TRPC_URL?.replace('/trpc', '') || '';
+      const backendUrl = import.meta.env?.VITE_BACKEND_URL || 'https://ez-clip-ai-production.up.railway.app';
       
-      if (!backendUrl && typeof window !== 'undefined') {
-        backendUrl = window.location.origin;
-      }
-      
-      if (!backendUrl) {
-        backendUrl = 'http://localhost:3001';
-      }
+      console.log('[Login] Iniciando login...');
+      console.log('[Login] Backend URL:', backendUrl);
+      console.log('[Login] Email:', email.trim().toLowerCase());
 
       const response = await fetch(`${backendUrl}/auth/login`, {
         method: 'POST',
@@ -131,9 +127,12 @@ export function Login() {
       }
 
       const data: LoginResponse = await response.json();
+      
+      console.log('[Login] Resposta recebida:', { success: data.success, hasData: !!data.data, error: data.error });
 
       if (!response.ok || !data.success || !data.data) {
         const errorMessage = data.error || 'Erro ao fazer login';
+        console.error('[Login] Erro:', errorMessage);
         setIsLoading(false);
         isSubmittingRef.current = false;
         toast.error(errorMessage);
@@ -141,6 +140,7 @@ export function Login() {
       }
 
       // Sucesso - salvar dados
+      console.log('[Login] Sucesso:', { userId: data.data.user.id, email: data.data.user.email });
       try {
         localStorage.setItem('token', data.data.token);
         localStorage.setItem('user', JSON.stringify(data.data.user));

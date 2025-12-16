@@ -19,8 +19,11 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
 
   const [trpcClient] = useState(() => {
     // @ts-ignore - import.meta.env é injetado pelo Vite
-    const trpcUrl = import.meta.env?.VITE_TRPC_URL || 
-                    (typeof window !== 'undefined' ? window.location.origin + '/trpc' : 'http://localhost:3001/trpc');
+    // Em desenvolvimento local, usar Railway
+    const backendUrl = import.meta.env?.VITE_BACKEND_URL || 'https://ez-clip-ai-production.up.railway.app';
+    const trpcUrl = `${backendUrl}/trpc`;
+    
+    console.log('[tRPC] Configurando cliente com URL:', trpcUrl);
     
     return trpc.createClient({
       links: [
@@ -31,16 +34,20 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
             return token ? { authorization: `Bearer ${token}` } : {};
           },
           fetch: async (url, options) => {
+            console.log('[tRPC] Fazendo requisição para:', url);
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 segundos (aumentado temporariamente)
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
             
             try {
               const response = await fetch(url, {
                 ...options,
                 signal: controller.signal,
+                credentials: 'include', // Adicionar para cookies
               });
               
               clearTimeout(timeoutId);
+              
+              console.log('[tRPC] Resposta recebida:', response.status, response.statusText);
               
               if (!response.ok && response.status >= 500) {
                 const cloned = response.clone();
@@ -51,6 +58,7 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
               return response;
             } catch (error: any) {
               clearTimeout(timeoutId);
+              console.error('[tRPC] Erro na requisição:', error);
               if (error.name === 'AbortError') {
                 throw new Error('Timeout: A requisição demorou mais de 60 segundos. Isso pode indicar problema de conexão com o banco de dados.');
               }

@@ -151,9 +151,12 @@ export async function processLogin(
 
     const emailLower = credentials.email.trim().toLowerCase();
     logger.info(`[AuthService] [${requestId}] Buscando usuário: ${emailLower}`);
+    console.log('[Auth] Buscando usuário:', emailLower);
 
     // 2. Buscar usuário
     const user = await findUserByEmail(emailLower, requestId);
+    
+    console.log('[Auth] Usuário encontrado:', user ? 'Sim' : 'Não');
     
     if (!user) {
       logger.warn(`[AuthService] [${requestId}] Usuário não encontrado`);
@@ -168,7 +171,10 @@ export async function processLogin(
 
     // 4. Verificar senha
     logger.info(`[AuthService] [${requestId}] Verificando senha...`);
+    console.log('[Auth] Verificando senha...');
     const passwordValid = await verifyPassword(credentials.password, user.password_hash, requestId);
+    
+    console.log('[Auth] Senha válida:', passwordValid);
     
     if (!passwordValid) {
       logger.warn(`[AuthService] [${requestId}] Senha inválida`);
@@ -177,7 +183,9 @@ export async function processLogin(
 
     // 5. Gerar token
     logger.info(`[AuthService] [${requestId}] Gerando token...`);
+    console.log('[Auth] Gerando token...');
     const token = generateToken(user.id, user.email);
+    console.log('[Auth] Token gerado com sucesso');
 
     // 6. Preparar dados do usuário
     const userData: UserData = {

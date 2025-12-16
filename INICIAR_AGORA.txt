@@ -1,0 +1,33 @@
+═══════════════════════════════════════════════════════════
+  🚀 COMO INICIAR O SITE LOCALMENTE - PASSO A PASSO
+═══════════════════════════════════════════════════════════
+
+1. Abra um NOVO Terminal (Cmd + Espaço, digite "Terminal")
+
+2. Execute estes comandos UM POR VEZ:
+
+   cd /Users/josyasborba/Desktop/viral-clips-ai
+   
+   ./testar-local.sh
+
+3. Aguarde aparecer:
+   "VITE ready in X ms"
+   "🚀 Backend rodando em http://localhost:3001"
+
+4. Abra o Safari e digite:
+   http://localhost:3000
+
+═══════════════════════════════════════════════════════════
+
+SE DER ERRO:
+
+- Verifique se Node.js está instalado:
+  node --version
+  
+- Se não estiver, instale em: https://nodejs.org/
+
+- Se a porta 3000 não funcionar, veja qual porta o Vite
+  está usando no terminal (pode ser 3001, 5173, etc)
+
+═══════════════════════════════════════════════════════════
+

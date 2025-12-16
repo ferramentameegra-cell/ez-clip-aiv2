@@ -19,6 +19,7 @@ router.post('/login', async (req: Request, res: Response) => {
   const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   
   logger.info(`[Auth] [${requestId}] ➡️ Requisição de login recebida`);
+  console.log('[Auth] Login iniciado:', req.body.email);
 
   // Timeout global de 3 segundos
   const timeoutId = setTimeout(() => {
