@@ -51,16 +51,35 @@ export function Dashboard() {
   const [videoStartTime, setVideoStartTime] = useState<number | undefined>(undefined);
   const [videoEndTime, setVideoEndTime] = useState<number | undefined>(undefined);
 
-  const { data: userProfile } = trpc.auth.getProfile.useQuery();
-  const { data: jobs } = trpc.video.list.useQuery();
+  // Remover verificação de autenticação - acesso direto
+  // const { data: userProfile } = trpc.auth.getProfile.useQuery();
+  // const { data: jobs } = trpc.video.list.useQuery();
+  
+  // Dados opcionais (não bloqueiam o acesso)
+  const { data: userProfile } = trpc.auth.getProfile.useQuery(undefined, {
+    enabled: false, // Desabilitado - não precisa de autenticação
+    retry: false,
+  });
+  const { data: jobs } = trpc.video.list.useQuery(undefined, {
+    enabled: false, // Desabilitado - não precisa de autenticação
+    retry: false,
+  });
 
   const createJob = trpc.video.create.useMutation({
     onSuccess: () => {
-      const creditsUsed = packageSize ? parseInt(packageSize) : 1;
-      toast.success(`Job criado com sucesso! ${creditsUsed} crédito(s) consumido(s).`);
-      setTimeout(() => {
-        setLocation('/jobs');
-      }, 1500);
+      toast.success('Job criado com sucesso!');
+      // Limpar formulário
+      setYoutubeUrl('');
+      setVertical('');
+      setPackageSize('');
+      setClipDuration('60');
+      setAddSubtitles(true);
+      setSecondaryType('none');
+      setSelectedVideo(null);
+      setSelectedEmoji(null);
+      setHeadline('');
+      setVideoStartTime(undefined);
+      setVideoEndTime(undefined);
     },
     onError: (error) => {
       toast.error(error.message || 'Erro ao criar job');
@@ -77,11 +96,12 @@ export function Dashboard() {
       return;
     }
 
-    const creditsNeeded = packageSize ? parseInt(packageSize) : 1;
-    if (userProfile && userProfile.credits < creditsNeeded) {
-      toast.error(`Você precisa de ${creditsNeeded} crédito(s). Você tem ${userProfile.credits}.`);
-      return;
-    }
+    // Verificação de créditos removida - acesso direto sem autenticação
+    // const creditsNeeded = packageSize ? parseInt(packageSize) : 1;
+    // if (userProfile && userProfile.credits < creditsNeeded) {
+    //   toast.error(`Você precisa de ${creditsNeeded} crédito(s). Você tem ${userProfile.credits}.`);
+    //   return;
+    // }
 
     createJob.mutate({
       youtubeUrl,
@@ -166,7 +186,7 @@ export function Dashboard() {
           {/* Welcome Section */}
           <div className={`mb-8 p-6 rounded-lg ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
             <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              {t('dashboard.welcome')}, {userProfile?.name || 'Usuário'}! 👋
+              {t('dashboard.welcome')}! 👋
             </h2>
             <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
               Crie seus clipes virais em minutos

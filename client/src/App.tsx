@@ -29,12 +29,12 @@ function AppContent() {
 
   return (
     <div className="min-h-screen">
-      {showHeader && location !== '/' && <Header />}
+      {showHeader && <Header />}
       <Switch>
-        {/* Landing Page (Pública) */}
-        <Route path="/" component={Home} />
+        {/* Dashboard - Página Principal (Acesso Direto, Sem Login) */}
+        <Route path="/" component={Dashboard} />
 
-        {/* Auth Pages (Públicas) */}
+        {/* Auth Pages (Públicas) - Mantidas para referência */}
         <Route path="/login" component={Login} />
         <Route path="/signup" component={Signup} />
 
@@ -45,12 +45,8 @@ function AppContent() {
           </ProtectedRoute>
         </Route>
 
-        {/* Dashboard (Protegida - requer login e onboarding) */}
-        <Route path="/dashboard">
-          <ProtectedRoute requireOnboarding={true}>
-            <Dashboard />
-          </ProtectedRoute>
-        </Route>
+        {/* Dashboard também disponível em /dashboard (mesmo acesso direto) */}
+        <Route path="/dashboard" component={Dashboard} />
 
         {/* Rotas Protegidas */}
         <Route path="/profile">
