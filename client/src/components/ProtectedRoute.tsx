@@ -22,15 +22,17 @@ export function ProtectedRoute({
   const userStr = localStorage.getItem('user');
   
   // Verificar onboarding se necessário
-  const { data: onboardingData } = trpc.onboarding.check.useQuery(undefined, {
+  const { data: onboardingData, isLoading: isLoadingOnboarding, error: onboardingError } = trpc.onboarding.check.useQuery(undefined, {
     enabled: requireOnboarding && !!token,
     retry: false,
+    refetchOnWindowFocus: false,
   });
 
   // Verificar perfil (para role admin)
-  const { data: profileData } = trpc.auth.getProfile.useQuery(undefined, {
+  const { data: profileData, isLoading: isLoadingProfile, error: profileError } = trpc.auth.getProfile.useQuery(undefined, {
     enabled: requireAdmin && !!token,
     retry: false,
+    refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
@@ -43,23 +45,53 @@ export function ProtectedRoute({
       return;
     }
 
-    // Se precisa de onboarding e não completou
-    if (requireOnboarding && onboardingData && !onboardingData.completed) {
-      setRedirectTo('/onboarding');
-      setIsChecking(false);
-      return;
+    // Se precisa de onboarding, aguardar query terminar
+    if (requireOnboarding) {
+      if (isLoadingOnboarding) {
+        // Ainda carregando, aguardar
+        return;
+      }
+      
+      if (onboardingError) {
+        console.error('[ProtectedRoute] Erro ao verificar onboarding:', onboardingError);
+        // Se der erro, redirecionar para onboarding para garantir
+        setRedirectTo('/onboarding');
+        setIsChecking(false);
+        return;
+      }
+      
+      if (onboardingData && !onboardingData.completed) {
+        setRedirectTo('/onboarding');
+        setIsChecking(false);
+        return;
+      }
     }
 
-    // Se precisa ser admin e não é
-    if (requireAdmin && profileData && profileData.role !== 'admin') {
-      setRedirectTo('/');
-      setIsChecking(false);
-      return;
+    // Se precisa ser admin, aguardar query terminar
+    if (requireAdmin) {
+      if (isLoadingProfile) {
+        // Ainda carregando, aguardar
+        return;
+      }
+      
+      if (profileError) {
+        console.error('[ProtectedRoute] Erro ao verificar perfil:', profileError);
+        setRedirectTo('/');
+        setIsChecking(false);
+        return;
+      }
+      
+      if (profileData && profileData.role !== 'admin') {
+        setRedirectTo('/');
+        setIsChecking(false);
+        return;
+      }
     }
 
+    // Tudo OK, permitir acesso
     setIsChecking(false);
     setRedirectTo(null);
-  }, [token, userStr, requireOnboarding, requireAdmin, onboardingData, profileData]);
+  }, [token, userStr, requireOnboarding, requireAdmin, onboardingData, profileData, isLoadingOnboarding, isLoadingProfile, onboardingError, profileError]);
 
   useEffect(() => {
     if (redirectTo) {
@@ -67,10 +99,26 @@ export function ProtectedRoute({
     }
   }, [redirectTo, setLocation]);
 
+  // Timeout para evitar travamento infinito
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isChecking) {
+        console.warn('[ProtectedRoute] Timeout na verificação, redirecionando para login');
+        setRedirectTo('/login');
+        setIsChecking(false);
+      }
+    }, 10000); // 10 segundos de timeout
+
+    return () => clearTimeout(timeout);
+  }, [isChecking]);
+
   if (isChecking || redirectTo) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">Carregando...</div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <div>Carregando...</div>
+        </div>
       </div>
     );
   }

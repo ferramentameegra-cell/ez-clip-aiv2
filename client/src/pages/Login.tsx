@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation } from 'wouter';
+import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +13,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 export function Login() {
   const { t } = useTranslation();
   const { isDark } = useTheme();
-  const [, setLocation] = useLocation();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,16 +24,25 @@ export function Login() {
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (result) => {
-      localStorage.setItem('token', result.token);
-      localStorage.setItem('user', JSON.stringify(result.user));
-      toast.success(t('login.loginSuccess'));
-      
-      // Redirecionar para dashboard ou URL de retorno
-      const params = new URLSearchParams(window.location.search);
-      const redirect = params.get('redirect') || '/dashboard';
-      setLocation(redirect);
+      try {
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('user', JSON.stringify(result.user));
+        toast.success(t('login.loginSuccess'));
+        
+        // Pequeno delay para garantir que o localStorage foi salvo
+        setTimeout(() => {
+          // Redirecionar para dashboard ou URL de retorno
+          const params = new URLSearchParams(window.location.search);
+          const redirect = params.get('redirect') || '/dashboard';
+          window.location.href = redirect; // Usar window.location.href para forçar reload
+        }, 100);
+      } catch (error) {
+        console.error('[Login] Erro ao salvar dados:', error);
+        toast.error('Erro ao fazer login. Tente novamente.');
+      }
     },
     onError: (error) => {
+      console.error('[Login] Erro na mutation:', error);
       toast.error(error.message || t('login.loginError'));
     },
   });
