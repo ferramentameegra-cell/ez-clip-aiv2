@@ -94,12 +94,10 @@ export async function getDb() {
     const startTime = Date.now();
     console.log('[DB] 🔌 Inicializando Drizzle com pool...');
     
-    const pool = getConnectionPool();
-    
     const duration = Date.now() - startTime;
     console.log('[DB] ✅ Drizzle inicializado:', `${duration}ms`);
 
-    dbInstance = drizzle(pool, { schema, mode: 'default' });
+    dbInstance = drizzle(getConnectionPool(), { schema, mode: 'default' });
     return dbInstance;
   } catch (error: any) {
     console.error('[DB] ❌ Erro ao inicializar Drizzle:', {
@@ -115,11 +113,11 @@ export async function getDb() {
  * Com timeout para evitar travamento
  */
 export async function getPoolConnection(): Promise<mysql.PoolConnection> {
-  const pool = getConnectionPool();
-  
   try {
     const startTime = Date.now();
     console.log('[DB] 🔄 Tentando obter conexão do pool...');
+    
+    const pool = getConnectionPool();
     
     // Criar promise com timeout
     const connectionPromise = pool.getConnection();
