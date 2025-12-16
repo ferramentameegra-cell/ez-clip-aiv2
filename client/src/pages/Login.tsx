@@ -1,6 +1,6 @@
 /**
- * Página de Login - Nova Estrutura Simplificada
- * Sem complexidade desnecessária, foco em funcionalidade
+ * Página de Login - Design Completamente Novo
+ * Visual moderno, formato diferente, funcionalidade robusta
  */
 
 import { useState, useRef } from 'react';
@@ -9,12 +9,11 @@ import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Loader2, Eye, EyeOff, Sparkles, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '@/contexts/ThemeContext';
 
-const FRONTEND_TIMEOUT = 30000; // 30 segundos (tempo suficiente para conexões lentas)
+const FRONTEND_TIMEOUT = 30000; // 30 segundos
 
 interface LoginResponse {
   success: boolean;
@@ -103,21 +102,17 @@ export function Login() {
     }, FRONTEND_TIMEOUT);
 
     try {
-      // Obter URL do backend - garantir que está correta
+      // Obter URL do backend
       // @ts-ignore
       let backendUrl = import.meta.env?.VITE_TRPC_URL?.replace('/trpc', '') || '';
       
-      // Se não tiver VITE_TRPC_URL, usar origin atual
       if (!backendUrl && typeof window !== 'undefined') {
         backendUrl = window.location.origin;
       }
       
-      // Fallback para localhost se nada funcionar
       if (!backendUrl) {
         backendUrl = 'http://localhost:3001';
       }
-
-      console.log('[Login] URL do backend:', `${backendUrl}/auth/login`);
 
       const response = await fetch(`${backendUrl}/auth/login`, {
         method: 'POST',
@@ -135,9 +130,6 @@ export function Login() {
         timeoutRef.current = null;
       }
 
-      const duration = Date.now() - startTime;
-      console.log(`[Login] Resposta recebida: ${response.status} (${duration}ms)`);
-
       const data: LoginResponse = await response.json();
 
       if (!response.ok || !data.success || !data.data) {
@@ -149,7 +141,6 @@ export function Login() {
       }
 
       // Sucesso - salvar dados
-
       try {
         localStorage.setItem('token', data.data.token);
         localStorage.setItem('user', JSON.stringify(data.data.user));
@@ -182,7 +173,6 @@ export function Login() {
 
       // Tratar AbortError
       if (error.name === 'AbortError' || error.message?.includes('aborted')) {
-        // Timeout já mostrou mensagem
         if (Date.now() - startTime < FRONTEND_TIMEOUT) {
           toast.error('A requisição foi cancelada. Tente novamente.');
         }
@@ -196,114 +186,174 @@ export function Login() {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${isDark ? 'bg-slate-900' : 'bg-gray-50'}`}>
-      <Card className={`w-full max-w-md ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white'}`}>
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
-            <Lock className="h-6 w-6 text-white" />
+    <div className={`min-h-screen flex ${isDark ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900' : 'bg-gradient-to-br from-indigo-50 via-white to-purple-50'}`}>
+      {/* Layout em duas colunas - Design Moderno */}
+      <div className="flex-1 flex">
+        {/* Coluna Esquerda - Ilustração/Branding */}
+        <div className="hidden lg:flex flex-1 items-center justify-center p-12">
+          <div className="max-w-md space-y-8">
+            <div className="flex items-center gap-3">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-2xl">
+                <Sparkles className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  Viral Clips AI
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Crie vídeos virais com IA</p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                <div className="w-2 h-2 rounded-full bg-indigo-600"></div>
+                <span>Geração automática de vídeos</span>
+              </div>
+              <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                <div className="w-2 h-2 rounded-full bg-purple-600"></div>
+                <span>Otimização para redes sociais</span>
+              </div>
+              <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                <div className="w-2 h-2 rounded-full bg-indigo-600"></div>
+                <span>IA avançada para máxima retenção</span>
+              </div>
+            </div>
           </div>
-          <CardTitle className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            {t('login.title')}
-          </CardTitle>
-          <p className={`mt-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            {t('login.subtitle')}
-          </p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
-            <div>
-              <Label htmlFor="email" className={isDark ? 'text-gray-300' : ''}>
-                {t('login.form.email')}
-              </Label>
-              <div className="relative mt-1">
-                <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (errors.email) setErrors({ ...errors, email: undefined });
-                  }}
-                  className={`pl-10 ${errors.email ? 'border-red-500' : ''}`}
-                  placeholder={t('login.form.emailPlaceholder')}
-                  disabled={isLoading}
-                  autoComplete="email"
-                />
+        </div>
+
+        {/* Coluna Direita - Formulário de Login */}
+        <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
+          <div className={`w-full max-w-md ${isDark ? 'bg-slate-800/90 backdrop-blur-xl' : 'bg-white/90 backdrop-blur-xl'} rounded-3xl shadow-2xl border ${isDark ? 'border-slate-700' : 'border-gray-200'} p-8 lg:p-10`}>
+            {/* Header */}
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 mb-4 shadow-lg">
+                <Lock className="h-8 w-8 text-white" />
               </div>
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-500">{errors.email}</p>
-              )}
+              <h2 className={`text-3xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                {t('login.title')}
+              </h2>
+              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                {t('login.subtitle')}
+              </p>
             </div>
 
-            {/* Senha */}
-            <div>
-              <Label htmlFor="password" className={isDark ? 'text-gray-300' : ''}>
-                {t('login.form.password')}
-              </Label>
-              <div className="relative mt-1">
-                <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (errors.password) setErrors({ ...errors, password: undefined });
-                  }}
-                  className={`pl-10 pr-10 ${errors.password ? 'border-red-500' : ''}`}
-                  placeholder={t('login.form.passwordPlaceholder')}
-                  disabled={isLoading}
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
-                  tabIndex={-1}
+            {/* Formulário */}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Email */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('login.form.email')}
+                </Label>
+                <div className="relative">
+                  <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-400'}`} />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (errors.email) setErrors({ ...errors, email: undefined });
+                    }}
+                    className={`pl-12 h-12 rounded-xl ${errors.email ? 'border-red-500 focus-visible:ring-red-500' : ''} ${isDark ? 'bg-slate-700/50 border-slate-600 text-white' : 'bg-gray-50 border-gray-200'}`}
+                    placeholder={t('login.form.emailPlaceholder')}
+                    disabled={isLoading}
+                    autoComplete="email"
+                  />
+                </div>
+                {errors.email && (
+                  <p className="text-sm text-red-500 mt-1">{errors.email}</p>
+                )}
+              </div>
+
+              {/* Senha */}
+              <div className="space-y-2">
+                <Label htmlFor="password" className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('login.form.password')}
+                </Label>
+                <div className="relative">
+                  <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-400'}`} />
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (errors.password) setErrors({ ...errors, password: undefined });
+                    }}
+                    className={`pl-12 pr-12 h-12 rounded-xl ${errors.password ? 'border-red-500 focus-visible:ring-red-500' : ''} ${isDark ? 'bg-slate-700/50 border-slate-600 text-white' : 'bg-gray-50 border-gray-200'}`}
+                    placeholder={t('login.form.passwordPlaceholder')}
+                    disabled={isLoading}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className={`absolute right-4 top-1/2 -translate-y-1/2 ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-sm text-red-500 mt-1">{errors.password}</p>
+                )}
+              </div>
+
+              {/* Esqueci a senha */}
+              <div className="flex items-center justify-between">
+                <div></div>
+                <Link 
+                  href="/forgot-password" 
+                  className={`text-sm font-medium ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'} transition-colors`}
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
+                  {t('login.forgotPassword')}
+                </Link>
               </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-500">{errors.password}</p>
-              )}
+
+              {/* Botão Submit */}
+              <Button
+                type="submit"
+                className="w-full h-12 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    {t('login.loading')}
+                  </>
+                ) : (
+                  <>
+                    {t('login.form.submit')}
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </>
+                )}
+              </Button>
+            </form>
+
+            {/* Divisor */}
+            <div className="relative my-8">
+              <div className={`absolute inset-0 flex items-center ${isDark ? 'border-slate-700' : 'border-gray-200'}`}>
+                <div className={`w-full border-t ${isDark ? 'border-slate-700' : 'border-gray-200'}`}></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className={`px-4 ${isDark ? 'bg-slate-800 text-gray-400' : 'bg-white text-gray-500'}`}>
+                  ou
+                </span>
+              </div>
             </div>
 
-            {/* Esqueci a senha */}
-            <div className="text-right">
-              <Link href="/forgot-password" className={`text-sm ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'}`}>
-                {t('login.forgotPassword')}
+            {/* Link para Signup */}
+            <div className={`text-center text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              {t('login.noAccount')}{' '}
+              <Link 
+                href="/signup" 
+                className={`font-semibold ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'} transition-colors`}
+              >
+                {t('login.signupLink')}
               </Link>
             </div>
-
-            {/* Botão Submit */}
-            <Button
-              type="submit"
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('login.loading')}
-                </>
-              ) : (
-                t('login.form.submit')
-              )}
-            </Button>
-          </form>
-
-          {/* Link para Signup */}
-          <div className={`mt-6 text-center ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            {t('login.noAccount')}{' '}
-            <Link href="/signup" className="text-indigo-600 hover:underline font-semibold">
-              {t('login.signupLink')}
-            </Link>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
