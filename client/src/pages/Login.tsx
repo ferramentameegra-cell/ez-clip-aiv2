@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 export function Login() {
   const { t } = useTranslation();
   const { isDark } = useTheme();
+  const [, setLocation] = useLocation();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,98 +22,38 @@ export function Login() {
     email?: string;
     password?: string;
   }>({});
-  
-  // Timeout de segurança para garantir que loading sempre finalize
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const loginMutation = trpc.auth.login.useMutation({
-    onMutate: () => {
-      console.log('[Login] Iniciando login...', { email: email.trim().toLowerCase() });
+    onSuccess: (data) => {
+      console.log('[Login] ✅ Sucesso:', { hasToken: !!data.token, userId: data.user.id });
       
-      // Timeout de segurança: se após 60 segundos não houver resposta, forçar finalização
-      timeoutRef.current = setTimeout(() => {
-        console.error('[Login] ⚠️ TIMEOUT: Login demorou mais de 60 segundos');
-        toast.error('A requisição está demorando muito. Isso pode indicar problema de conexão com o banco de dados. Tente novamente em alguns instantes.');
-      }, 60000);
-    },
-    onSuccess: (result) => {
-      // Limpar timeout se ainda estiver ativo
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
+      // Salvar dados
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
       
-      console.log('[Login] ✅ Login bem-sucedido!', { 
-        hasToken: !!result.token,
-        hasUser: !!result.user,
-        userId: result.user?.id 
-      });
+      toast.success(t('login.loginSuccess'));
       
-      try {
-        // Salvar dados no localStorage
-        localStorage.setItem('token', result.token);
-        localStorage.setItem('user', JSON.stringify(result.user));
-        console.log('[Login] ✅ Dados salvos no localStorage');
-        
-        // Verificar se foi salvo corretamente
-        const savedToken = localStorage.getItem('token');
-        const savedUser = localStorage.getItem('user');
-        
-        if (!savedToken || !savedUser) {
-          throw new Error('Falha ao salvar dados no localStorage');
-        }
-        
-        console.log('[Login] ✅ Dados confirmados no localStorage');
-        toast.success(t('login.loginSuccess'));
-        
-        // Redirecionar após pequeno delay para garantir que tudo foi salvo
-        setTimeout(() => {
-          console.log('[Login] 🔄 Redirecionando para /onboarding...');
-          window.location.href = '/onboarding';
-        }, 300);
-      } catch (error: any) {
-        console.error('[Login] ❌ Erro ao salvar dados:', error);
-        toast.error(error.message || 'Erro ao fazer login. Tente novamente.');
-      }
+      // Redirecionar
+      setTimeout(() => {
+        setLocation('/onboarding');
+      }, 100);
     },
     onError: (error) => {
-      // Limpar timeout se ainda estiver ativo
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
+      console.error('[Login] ❌ Erro:', error);
       
-      console.error('[Login] ❌ Erro na mutation:', error);
-      console.error('[Login] Detalhes completos do erro:', {
-        message: error.message,
-        code: error.data?.code,
-        httpStatus: error.data?.httpStatus,
-        data: error.data,
-        shape: error.shape,
-      });
+      let message = t('login.loginError');
       
-      // Mensagem de erro mais amigável
-      let errorMessage = t('login.loginError');
-      if (error.message) {
-        errorMessage = error.message;
-      } else if (error.data?.code === 'UNAUTHORIZED') {
-        errorMessage = 'Email ou senha incorretos';
-      } else if (error.data?.httpStatus === 500) {
-        errorMessage = 'Erro no servidor. Tente novamente em alguns instantes.';
+      if (error.message?.includes('Email ou senha incorretos')) {
+        message = 'Email ou senha incorretos';
       } else if (error.message?.includes('Timeout')) {
-        errorMessage = 'A requisição demorou muito. Verifique sua conexão.';
+        message = 'A requisição demorou muito. Tente novamente.';
+      } else if (error.message?.includes('indisponível')) {
+        message = 'Serviço temporariamente indisponível. Tente novamente em alguns instantes.';
+      } else if (error.message) {
+        message = error.message;
       }
       
-      toast.error(errorMessage);
-    },
-    onSettled: () => {
-      // Limpar timeout se ainda estiver ativo
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      
-      console.log('[Login] ⏹️ Mutation finalizada (sucesso ou erro)');
+      toast.error(message);
     },
   });
 
@@ -135,34 +76,16 @@ export function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('[Login] 📝 Formulário submetido');
 
     if (!validateForm()) {
-      console.log('[Login] ⚠️ Validação falhou');
       return;
     }
 
-    console.log('[Login] ✅ Validação passou, enviando requisição...');
-    
-    try {
-      loginMutation.mutate({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-    } catch (error) {
-      console.error('[Login] ❌ Erro ao chamar mutation:', error);
-      toast.error('Erro inesperado. Tente novamente.');
-    }
+    loginMutation.mutate({
+      email: email.trim().toLowerCase(),
+      password,
+    });
   };
-
-  // Limpar timeout ao desmontar componente
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
 
   const isLoading = loginMutation.isPending;
 
@@ -200,6 +123,7 @@ export function Login() {
                   className={`pl-10 ${errors.email ? 'border-red-500' : ''}`}
                   placeholder={t('login.form.emailPlaceholder')}
                   disabled={isLoading}
+                  autoComplete="email"
                 />
               </div>
               {errors.email && (
@@ -225,6 +149,7 @@ export function Login() {
                   className={`pl-10 pr-10 ${errors.password ? 'border-red-500' : ''}`}
                   placeholder={t('login.form.passwordPlaceholder')}
                   disabled={isLoading}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -263,7 +188,7 @@ export function Login() {
               )}
             </Button>
             
-            {/* Mensagem de erro adicional (se houver) */}
+            {/* Mensagem de erro */}
             {loginMutation.isError && (
               <div className="mt-2 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
                 <p className="text-sm text-red-600 dark:text-red-400">

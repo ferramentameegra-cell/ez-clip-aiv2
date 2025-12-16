@@ -7,6 +7,7 @@ import { appRouter } from './_core/router';
 import { Context } from './_core/trpc';
 import { globalLimiter, authLimiter } from './middleware/rateLimit';
 import { logger } from './lib/logger';
+import { Readable } from 'stream';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,28 +60,19 @@ const createContext = async (req: express.Request): Promise<Context> => {
   return {};
 };
 
-// Middleware para ler body como raw para tRPC
-app.use('/trpc', express.raw({ type: 'application/json', limit: '50mb' }));
+// Middleware para ler body como texto para tRPC (mais compatível)
+app.use('/trpc', express.text({ type: 'application/json', limit: '50mb' }));
 
-// Rota tRPC - usando fetchRequestHandler com conversão do Express request
+// Rota tRPC - versão simplificada e robusta
 app.use('/trpc', async (req, res) => {
+  const requestStartTime = Date.now();
+  
   try {
-    // Converter Express request para Fetch Request
-    const protocol = req.protocol || 'http';
+    // Construir URL completa
+    const protocol = req.protocol || (req.secure ? 'https' : 'http');
     const host = req.get('host') || `localhost:${PORT}`;
-    
-    // Quando usamos app.use('/trpc', ...), o Express remove '/trpc' do req.url
-    // req.url será algo como '/userContent.listGenericEmojis' ou '/?batch=1&input=...'
-    // Precisamos reconstruir a URL completa incluindo /trpc
-    const reqUrl = req.url || '/';
-    const queryString = reqUrl.includes('?') ? reqUrl.split('?')[1] : '';
-    const pathname = reqUrl.includes('?') ? reqUrl.split('?')[0] : reqUrl;
-    
-    // Construir URL completa: protocol://host/trpc/path?query
-    const fullPath = `/trpc${pathname}`;
-    const url = queryString 
-      ? `${protocol}://${host}${fullPath}?${queryString}`
-      : `${protocol}://${host}${fullPath}`;
+    const pathname = req.url || '/';
+    const url = `${protocol}://${host}${pathname}`;
     
     // Criar headers
     const headers = new Headers();
@@ -89,35 +81,25 @@ app.use('/trpc', async (req, res) => {
       if (value && key.toLowerCase() !== 'content-length') {
         if (Array.isArray(value)) {
           value.forEach((v) => headers.append(key, v));
-        } else {
+        } else if (typeof value === 'string') {
           headers.set(key, value);
         }
       }
     });
 
-    // Criar body - converter Buffer para string
-    let body: string | undefined;
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-      if (req.body) {
-        if (Buffer.isBuffer(req.body)) {
-          body = req.body.toString('utf-8');
-        } else if (typeof req.body === 'string') {
-          body = req.body;
-        } else {
-          body = JSON.stringify(req.body);
-        }
-      }
-    }
+    // Body já vem como string do express.text()
+    const body = req.method !== 'GET' && req.method !== 'HEAD' && req.body ? req.body : undefined;
 
+    // Criar Fetch Request
     const fetchRequest = new Request(url, {
       method: req.method,
       headers,
       body,
     });
 
-    const requestStartTime = Date.now();
-    logger.info(`[tRPC] 📥 Request recebido: ${req.method} ${req.url}`);
+    logger.info(`[tRPC] 📥 ${req.method} ${pathname}`);
     
+    // Processar com tRPC
     const response = await fetchRequestHandler({
       endpoint: '/trpc',
       req: fetchRequest,
@@ -131,53 +113,42 @@ app.use('/trpc', async (req, res) => {
           message: error.message,
           code: error.code,
           httpStatus,
-          cause: error.cause,
-          stack: error.stack?.substring(0, 500), // Primeiros 500 caracteres do stack
         });
         
-        // Garantir que erros sejam serializáveis
-        if (error.cause) {
-          logger.error('[tRPC] Error cause:', error.cause);
-        }
-        
-        // Se for erro de banco de dados, logar detalhes adicionais
         if (error.message?.includes('timeout') || 
             error.message?.includes('ECONNREFUSED') ||
-            error.message?.includes('ETIMEDOUT') ||
-            (error as any).code === 'PROTOCOL_CONNECTION_LOST') {
-          logger.error('[tRPC] ⚠️ Erro de conexão com banco de dados detectado');
+            error.message?.includes('ETIMEDOUT')) {
+          logger.error('[tRPC] ⚠️ Erro de conexão com banco de dados');
         }
       },
     });
     
     const duration = Date.now() - requestStartTime;
-    logger.info(`[tRPC] 📤 Response enviado: ${response.status} (${duration}ms)`);
+    logger.info(`[tRPC] 📤 ${response.status} (${duration}ms)`);
     
-    // Copiar status e headers ANTES de ler o body
+    // Copiar status e headers
     res.status(response.status);
     response.headers.forEach((value, key) => {
-      // Evitar conflitos com headers já definidos
-      if (key.toLowerCase() !== 'content-encoding' && key.toLowerCase() !== 'transfer-encoding') {
+      const lowerKey = key.toLowerCase();
+      if (lowerKey !== 'content-encoding' && lowerKey !== 'transfer-encoding' && lowerKey !== 'content-length') {
         res.setHeader(key, value);
       }
     });
     
-    // Fazer streaming direto do body sem consumir o stream
-    // Isso evita o erro "body stream already read" no cliente tRPC
+    // Fazer streaming do body de forma segura
     if (response.body) {
-      // Converter ReadableStream do Fetch API para Node.js Readable
-      // Readable.fromWeb() está disponível no Node.js 18+
-      const { Readable } = await import('stream');
       const nodeStream = Readable.fromWeb(response.body as any);
       nodeStream.pipe(res);
     } else {
-      // Se não houver body, apenas finalizar
       res.end();
     }
   } catch (error: any) {
-    logger.error('[tRPC] Erro ao processar request:', error);
-    logger.error('[tRPC] Stack:', error.stack);
-    res.status(500).json({ error: error.message || 'Erro interno do servidor' });
+    const duration = Date.now() - requestStartTime;
+    logger.error(`[tRPC] ❌ Erro fatal após ${duration}ms:`, error);
+    res.status(500).json({ 
+      error: 'Erro interno do servidor',
+      message: error.message 
+    });
   }
 });
 
