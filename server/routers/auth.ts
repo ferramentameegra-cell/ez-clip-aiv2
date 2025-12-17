@@ -17,29 +17,107 @@ export const authRouter = router({
       language: z.enum(['pt-BR', 'es', 'en']).optional(),
     }))
     .mutation(async ({ input }) => {
-      const user = await createUser({
-        email: input.email,
-        password: input.password,
-        name: input.name,
-        language: input.language,
-      });
+      const startTime = Date.now();
+      console.log('[Auth] 📝 Iniciando cadastro:', { email: input.email, name: input.name });
+      
+      // Validar DATABASE_URL antes de processar
+      if (!process.env.DATABASE_URL) {
+        console.error('[Auth] ❌ DATABASE_URL não configurada');
+        const error = new Error('Serviço temporariamente indisponível. Tente novamente em alguns instantes.');
+        (error as any).code = 'SERVICE_UNAVAILABLE';
+        (error as any).httpStatus = 503;
+        throw error;
+      }
+      
+      try {
+        console.log('[Auth] 📞 Chamando createUser...');
+        const user = await createUser({
+          email: input.email,
+          password: input.password,
+          name: input.name,
+          language: input.language,
+        });
 
-      // Gerar token
-      const { generateToken } = await import('../auth');
-      const token = generateToken(user.id, user.email || '');
+        console.log('[Auth] ✅ Usuário criado:', { userId: user.id, email: user.email });
 
-      // Garantir que todos os valores sejam serializáveis
-      return {
-        user: {
-          id: user.id,
-          email: user.email || null,
-          name: user.name || null,
-          credits: user.credits ?? 0,
-          language: user.language || 'pt-BR',
-          avatarUrl: user.avatarUrl || null,
-        },
-        token,
-      };
+        // Gerar token
+        const { generateToken } = await import('../auth');
+        const token = generateToken(user.id, user.email || '');
+        console.log('[Auth] ✅ Token gerado');
+
+        const duration = Date.now() - startTime;
+        console.log('[Auth] ✅ Cadastro concluído com sucesso:', {
+          userId: user.id,
+          duration: `${duration}ms`,
+        });
+
+        // Garantir que todos os valores sejam serializáveis
+        return {
+          user: {
+            id: user.id,
+            email: user.email || null,
+            name: user.name || null,
+            credits: user.credits ?? 0,
+            language: user.language || 'pt-BR',
+            avatarUrl: user.avatarUrl || null,
+          },
+          token,
+        };
+      } catch (error: any) {
+        const duration = Date.now() - startTime;
+        
+        // Identificar tipo de erro para retornar status HTTP adequado
+        let httpStatus = 500;
+        let errorMessage = 'Erro ao criar conta';
+        
+        if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || 
+            error.code === 'ENOTFOUND' || error.message?.includes('timeout') ||
+            error.code === 'PROTOCOL_CONNECTION_LOST') {
+          // Erro de conexão com banco
+          httpStatus = 503;
+          errorMessage = 'Serviço temporariamente indisponível. Tente novamente em alguns instantes.';
+          console.error('[Auth] ❌ Erro de conexão com banco de dados:', {
+            error: error.message,
+            code: error.code,
+            duration: `${duration}ms`,
+            email: input.email,
+          });
+        } else if (error.message?.includes('já cadastrado') || 
+                   error.message?.includes('already exists') ||
+                   error.message?.includes('duplicate')) {
+          // Email já cadastrado
+          httpStatus = 400;
+          errorMessage = 'Este email já está cadastrado. Tente fazer login.';
+          console.warn('[Auth] ⚠️ Email já cadastrado:', {
+            email: input.email,
+            duration: `${duration}ms`,
+          });
+        } else if (error.message?.includes('Database not available')) {
+          // Banco não disponível
+          httpStatus = 503;
+          errorMessage = 'Serviço temporariamente indisponível. Tente novamente em alguns instantes.';
+          console.error('[Auth] ❌ Banco de dados não disponível:', {
+            error: error.message,
+            duration: `${duration}ms`,
+            email: input.email,
+          });
+        } else {
+          // Outros erros
+          console.error('[Auth] ❌ Erro no cadastro:', {
+            error: error.message,
+            code: error.code,
+            stack: error.stack?.substring(0, 500),
+            duration: `${duration}ms`,
+            email: input.email,
+          });
+        }
+        
+        // Criar erro com status HTTP
+        const tRPCError = new Error(errorMessage);
+        (tRPCError as any).code = error.code || 'INTERNAL_SERVER_ERROR';
+        (tRPCError as any).httpStatus = httpStatus;
+        throw tRPCError;
+      }
     }),
 
   // Login
