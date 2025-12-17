@@ -6,6 +6,7 @@ import { users } from '../../drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { storagePut } from '../storage';
 import { randomBytes } from 'crypto';
+import { logger } from '../lib/logger';
 
 export const authRouter = router({
   // Cadastro
