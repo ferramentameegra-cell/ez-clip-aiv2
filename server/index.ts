@@ -13,7 +13,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '3001', 10);
+// CRÍTICO: Garantir que PORT é sempre um número
+const PORT: number = Number.parseInt(process.env.PORT || '3001', 10);
+if (isNaN(PORT) || PORT <= 0) {
+  throw new Error(`PORT inválido: ${process.env.PORT}`);
+}
 
 // ============================================
 // INICIALIZAÇÃO DO POOL DE CONEXÕES (LAZY)
