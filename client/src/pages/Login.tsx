@@ -3,7 +3,7 @@
  * Visual moderno, formato diferente, funcionalidade robusta
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -12,25 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Mail, Lock, Loader2, Eye, EyeOff, Sparkles, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '@/contexts/ThemeContext';
-
-const FRONTEND_TIMEOUT = 60000; // 60 segundos (Railway pode ser mais lento)
-
-interface LoginResponse {
-  success: boolean;
-  data?: {
-    user: {
-      id: number;
-      email: string;
-      name: string;
-      credits: number;
-      language: string;
-      avatarUrl: string | null;
-    };
-    token: string;
-  };
-  error?: string;
-  requestId?: string;
-}
+import { trpc } from '@/lib/trpc';
 
 export function Login() {
   const { t } = useTranslation();
@@ -40,12 +22,55 @@ export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isSubmittingRef = useRef(false);
+
+  const loginMutation = trpc.auth.login.useMutation({
+    onSuccess: (result) => {
+      console.log('[Login] ✅ Login bem-sucedido:', { userId: result.user.id, email: result.user.email });
+      
+      try {
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('user', JSON.stringify(result.user));
+      } catch (storageError) {
+        console.error('[Login] Erro ao salvar no localStorage:', storageError);
+        toast.error('Erro ao salvar dados. Tente novamente.');
+        isSubmittingRef.current = false;
+        return;
+      }
+
+      isSubmittingRef.current = false;
+      toast.success(t('login.loginSuccess'));
+
+      // Redirecionar
+      setTimeout(() => {
+        setLocation('/onboarding');
+      }, 200);
+    },
+    onError: (error) => {
+      console.error('[Login] ❌ Erro no login:', error);
+      isSubmittingRef.current = false;
+      
+      // Mensagens de erro específicas
+      if (error.message?.includes('incorretos') || error.message?.includes('inválidos')) {
+        toast.error('Email ou senha incorretos. Verifique suas credenciais.');
+      } else if (error.message?.includes('método')) {
+        toast.error('Esta conta foi criada com outro método de login.');
+      } else if (error.message?.includes('timeout') || error.message?.includes('Timeout')) {
+        toast.error('A requisição demorou muito. Verifique sua conexão e tente novamente.');
+      } else {
+        toast.error(error.message || 'Erro ao fazer login. Tente novamente.');
+      }
+    },
+  });
+
+  // Cleanup ao desmontar
+  useEffect(() => {
+    return () => {
+      isSubmittingRef.current = false;
+    };
+  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
@@ -67,7 +92,7 @@ export function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (isSubmittingRef.current || isLoading) {
+    if (isSubmittingRef.current || loginMutation.isPending) {
       return;
     }
 
@@ -75,124 +100,18 @@ export function Login() {
       return;
     }
 
-    // Limpar requisição anterior
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    // Nova requisição
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
     isSubmittingRef.current = true;
-    setIsLoading(true);
+    
+    console.log('[Login] Iniciando login...');
+    console.log('[Login] Email:', email.trim().toLowerCase());
 
-    const startTime = Date.now();
-
-    // Timeout do frontend
-    timeoutRef.current = setTimeout(() => {
-      if (!controller.signal.aborted) {
-        controller.abort();
-        setIsLoading(false);
-        isSubmittingRef.current = false;
-        toast.error('A requisição demorou muito. Verifique sua conexão e tente novamente.');
-      }
-    }, FRONTEND_TIMEOUT);
-
-    try {
-      // Obter URL do backend - usar Railway em desenvolvimento local
-      // @ts-ignore
-      const backendUrl = import.meta.env?.VITE_BACKEND_URL || 'https://ez-clip-ai-production.up.railway.app';
-      
-      console.log('[Login] Iniciando login...');
-      console.log('[Login] Backend URL:', backendUrl);
-      console.log('[Login] Email:', email.trim().toLowerCase());
-      console.log('[Login] Timeout configurado:', FRONTEND_TIMEOUT, 'ms');
-      console.log('[Login] Fazendo requisição para:', `${backendUrl}/auth/login`);
-
-      // Medir tempo da requisição
-      const fetchStartTime = Date.now();
-      const response = await fetch(`${backendUrl}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          password,
-        }),
-        signal: controller.signal,
-      });
-
-      // Limpar timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-
-      // Calcular duração da requisição
-      const fetchDuration = Date.now() - fetchStartTime;
-      console.log('[Login] Resposta recebida em:', fetchDuration, 'ms');
-      console.log('[Login] Status:', response.status, response.statusText);
-
-      const data: LoginResponse = await response.json();
-      
-      console.log('[Login] Resposta recebida:', { success: data.success, hasData: !!data.data, error: data.error });
-
-      if (!response.ok || !data.success || !data.data) {
-        const errorMessage = data.error || 'Erro ao fazer login';
-        console.error('[Login] Erro:', errorMessage);
-        setIsLoading(false);
-        isSubmittingRef.current = false;
-        toast.error(errorMessage);
-        return;
-      }
-
-      // Sucesso - salvar dados
-      console.log('[Login] Sucesso:', { userId: data.data.user.id, email: data.data.user.email });
-      try {
-        localStorage.setItem('token', data.data.token);
-        localStorage.setItem('user', JSON.stringify(data.data.user));
-      } catch (storageError) {
-        console.error('[Login] Erro ao salvar no localStorage:', storageError);
-        toast.error('Erro ao salvar dados. Tente novamente.');
-        setIsLoading(false);
-        isSubmittingRef.current = false;
-        return;
-      }
-
-      setIsLoading(false);
-      isSubmittingRef.current = false;
-      toast.success(t('login.loginSuccess'));
-
-      // Redirecionar
-      setTimeout(() => {
-        setLocation('/onboarding');
-      }, 200);
-
-    } catch (error: any) {
-      // Limpar timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-
-      setIsLoading(false);
-      isSubmittingRef.current = false;
-
-      // Tratar AbortError
-      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
-        if (Date.now() - startTime < FRONTEND_TIMEOUT) {
-          toast.error('A requisição foi cancelada. Tente novamente.');
-        }
-        return;
-      }
-
-      // Outros erros
-      console.error('[Login] Erro na requisição:', error);
-      toast.error('Erro de conexão. Verifique sua internet e tente novamente.');
-    }
+    loginMutation.mutate({
+      email: email.trim().toLowerCase(),
+      password,
+    });
   };
+
+  const isLoading = loginMutation.isPending;
 
   return (
     <div className={`min-h-screen flex ${isDark ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900' : 'bg-gradient-to-br from-indigo-50 via-white to-purple-50'}`}>
