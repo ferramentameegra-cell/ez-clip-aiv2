@@ -127,25 +127,60 @@ export const authRouter = router({
       password: z.string(),
     }))
     .mutation(async ({ input }) => {
+      const requestId = `login-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const startTime = Date.now();
-      console.log('[Auth] 🔐 Iniciando login:', { email: input.email });
       
-      // Validar DATABASE_URL antes de processar
+      // LOG 1: Início da requisição
+      console.log(`[Auth] [${requestId}] 🔐 INÍCIO - Login iniciado:`, { 
+        email: input.email,
+        timestamp: new Date().toISOString(),
+      });
+      logger.info(`[Auth] [${requestId}] ➡️ Requisição de login recebida`);
+      
+      // Validar variáveis de ambiente CRÍTICAS
       if (!process.env.DATABASE_URL) {
-        console.error('[Auth] ❌ DATABASE_URL não configurada');
+        console.error(`[Auth] [${requestId}] ❌ DATABASE_URL não configurada`);
+        logger.error(`[Auth] [${requestId}] ❌ DATABASE_URL não configurada`);
         const error = new Error('Serviço temporariamente indisponível. Tente novamente em alguns instantes.');
         (error as any).code = 'SERVICE_UNAVAILABLE';
         (error as any).httpStatus = 503;
         throw error;
       }
       
+      if (!process.env.JWT_SECRET) {
+        console.error(`[Auth] [${requestId}] ❌ JWT_SECRET não configurado`);
+        logger.error(`[Auth] [${requestId}] ❌ JWT_SECRET não configurado`);
+        const error = new Error('Serviço temporariamente indisponível. Tente novamente em alguns instantes.');
+        (error as any).code = 'SERVICE_UNAVAILABLE';
+        (error as any).httpStatus = 503;
+        throw error;
+      }
+      
+      // LOG 2: Variáveis validadas
+      console.log(`[Auth] [${requestId}] ✅ Variáveis de ambiente validadas`);
+      
       try {
-        console.log('[Auth] 📞 Chamando loginUser...');
-        const result = await loginUser(input.email, input.password);
-        console.log('[Auth] ✅ loginUser retornou com sucesso:', { 
-          userId: result.user.id,
-          hasToken: !!result.token 
+        // LOG 3: Antes de chamar loginUser
+        console.log(`[Auth] [${requestId}] 📞 Chamando loginUser...`);
+        logger.info(`[Auth] [${requestId}] 📞 Chamando loginUser...`);
+        
+        // Timeout global de 30 segundos para toda a operação de login
+        const loginPromise = loginUser(input.email, input.password);
+        const globalTimeout = new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Timeout: Login excedeu 30 segundos'));
+          }, 30000);
         });
+        
+        const result = await Promise.race([loginPromise, globalTimeout]);
+        
+        // LOG 4: loginUser retornou
+        console.log(`[Auth] [${requestId}] ✅ loginUser retornou com sucesso:`, { 
+          userId: result.user.id,
+          hasToken: !!result.token,
+          duration: `${Date.now() - startTime}ms`,
+        });
+        logger.info(`[Auth] [${requestId}] ✅ loginUser retornou com sucesso`);
         
         // Garantir que todos os valores sejam serializáveis
         const response = {
@@ -161,14 +196,33 @@ export const authRouter = router({
         };
         
         const duration = Date.now() - startTime;
-        console.log('[Auth] ✅ Login concluído com sucesso:', {
+        
+        // LOG 5: Antes de retornar resposta
+        console.log(`[Auth] [${requestId}] ✅ RETORNANDO RESPOSTA - Login concluído:`, {
           userId: response.user.id,
           duration: `${duration}ms`,
+          timestamp: new Date().toISOString(),
         });
+        logger.info(`[Auth] [${requestId}] ✅ Login concluído com sucesso: ${duration}ms`);
         
         return response;
       } catch (error: any) {
         const duration = Date.now() - startTime;
+        
+        // LOG 6: Erro capturado
+        console.error(`[Auth] [${requestId}] ❌ ERRO CAPTURADO:`, {
+          error: error.message,
+          code: error.code,
+          stack: error.stack?.substring(0, 300),
+          duration: `${duration}ms`,
+          email: input.email,
+          timestamp: new Date().toISOString(),
+        });
+        logger.error(`[Auth] [${requestId}] ❌ Erro no login:`, {
+          error: error.message,
+          code: error.code,
+          duration: `${duration}ms`,
+        });
         
         // Identificar tipo de erro para retornar status HTTP adequado
         let httpStatus = 500;
@@ -176,35 +230,27 @@ export const authRouter = router({
         
         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || 
             error.code === 'ENOTFOUND' || error.message?.includes('timeout') ||
-            error.code === 'PROTOCOL_CONNECTION_LOST') {
+            error.message?.includes('Timeout') || error.code === 'PROTOCOL_CONNECTION_LOST') {
           // Erro de conexão com banco
           httpStatus = 503;
           errorMessage = 'Serviço temporariamente indisponível. Tente novamente em alguns instantes.';
-          console.error('[Auth] ❌ Erro de conexão com banco de dados:', {
-            error: error.message,
-            code: error.code,
-            duration: `${duration}ms`,
-            email: input.email,
-          });
+          console.error(`[Auth] [${requestId}] ❌ Erro de conexão com banco de dados`);
+          logger.error(`[Auth] [${requestId}] ❌ Erro de conexão com banco de dados`);
         } else if (error.message === 'Email ou senha incorretos' || 
                    error.message === 'Conta criada com outro método de login') {
           // Erro de autenticação (não é erro do servidor)
           httpStatus = 401;
           errorMessage = error.message;
-          console.warn('[Auth] ⚠️ Credenciais inválidas:', {
-            email: input.email,
-            duration: `${duration}ms`,
-          });
+          console.warn(`[Auth] [${requestId}] ⚠️ Credenciais inválidas`);
+          logger.warn(`[Auth] [${requestId}] ⚠️ Credenciais inválidas`);
         } else {
           // Outros erros
-          console.error('[Auth] ❌ Erro no login:', {
-            error: error.message,
-            code: error.code,
-            stack: error.stack?.substring(0, 500),
-            duration: `${duration}ms`,
-            email: input.email,
-          });
+          console.error(`[Auth] [${requestId}] ❌ Erro interno no login`);
+          logger.error(`[Auth] [${requestId}] ❌ Erro interno no login`);
         }
+        
+        // LOG 7: Antes de lançar erro
+        console.log(`[Auth] [${requestId}] 🚨 LANÇANDO ERRO - Status: ${httpStatus}, Mensagem: ${errorMessage}`);
         
         // Criar erro com status HTTP
         const tRPCError = new Error(errorMessage);

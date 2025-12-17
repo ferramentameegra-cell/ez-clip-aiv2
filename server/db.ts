@@ -28,6 +28,12 @@ export function getConnectionPool(): mysql.Pool {
   const password = url.password;
   const database = url.pathname.replace(/^\//, '');
 
+  // CRÍTICO: Configurar SSL para Railway MySQL
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT;
+  const sslConfig = isProduction ? {
+    rejectUnauthorized: false, // Railway usa certificados auto-assinados
+  } : undefined;
+
   connectionPool = mysql.createPool({
     host,
     port,
@@ -40,7 +46,10 @@ export function getConnectionPool(): mysql.Pool {
     connectTimeout: 20000, // 20 segundos para conectar (Railway pode ser lento)
     enableKeepAlive: true,
     keepAliveInitialDelay: 0,
+    ssl: sslConfig, // SSL obrigatório no Railway
   });
+  
+  console.log('[DB] 🔒 SSL configurado:', isProduction ? 'Sim (produção)' : 'Não (desenvolvimento)');
 
   // Event handlers para monitoramento
   connectionPool.on('connection', () => {

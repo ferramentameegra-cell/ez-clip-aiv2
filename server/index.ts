@@ -262,11 +262,15 @@ app.use((_req, res) => {
 });
 
 // Iniciar servidor IMEDIATAMENTE (sem esperar nada)
-app.listen(PORT, () => {
-  logger.info(`🚀 Backend rodando em http://localhost:${PORT}`);
-  logger.info(`📡 tRPC endpoint: http://localhost:${PORT}/trpc`);
-  logger.info(`❤️  Health check: http://localhost:${PORT}/health`);
-  logger.info(`🔐 Webhook Stripe: http://localhost:${PORT}/api/webhooks/stripe`);
+// CRÍTICO: Bind em 0.0.0.0 para aceitar conexões externas (Railway)
+app.listen(PORT, '0.0.0.0', () => {
+  logger.info(`🚀 Backend rodando em 0.0.0.0:${PORT}`);
+  logger.info(`📡 tRPC endpoint: http://0.0.0.0:${PORT}/trpc`);
+  logger.info(`❤️  Health check: http://0.0.0.0:${PORT}/health`);
+  logger.info(`🔐 Webhook Stripe: http://0.0.0.0:${PORT}/api/webhooks/stripe`);
+  logger.info(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`📦 DATABASE_URL configurada: ${process.env.DATABASE_URL ? 'Sim' : 'NÃO'}`);
+  logger.info(`🔑 JWT_SECRET configurado: ${process.env.JWT_SECRET ? 'Sim' : 'NÃO'}`);
   
   // Inicializar serviços APÓS o servidor estar rodando (não bloqueia startup)
   setTimeout(() => {
