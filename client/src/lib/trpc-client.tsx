@@ -35,8 +35,9 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
           },
           fetch: async (url, options) => {
             console.log('[tRPC] Fazendo requisição para:', url);
+            const startTime = Date.now();
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 segundos para Railway
+            const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 segundos (2 minutos) para Railway
             
             try {
               const response = await fetch(url, {
@@ -47,7 +48,8 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
               
               clearTimeout(timeoutId);
               
-              console.log('[tRPC] Resposta recebida:', response.status, response.statusText);
+              const duration = Date.now() - startTime;
+              console.log('[tRPC] Resposta recebida:', response.status, response.statusText, `(${duration}ms)`);
               
               if (!response.ok && response.status >= 500) {
                 const cloned = response.clone();
@@ -58,9 +60,10 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
               return response;
             } catch (error: any) {
               clearTimeout(timeoutId);
-              console.error('[tRPC] Erro na requisição:', error);
+              const duration = Date.now() - startTime;
+              console.error('[tRPC] Erro na requisição:', error, `(${duration}ms)`);
               if (error.name === 'AbortError') {
-                throw new Error('Timeout: A requisição demorou mais de 60 segundos. Isso pode indicar problema de conexão com o banco de dados.');
+                throw new Error('A requisição demorou muito. Verifique sua conexão e tente novamente.');
               }
               throw error;
             }

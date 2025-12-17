@@ -66,13 +66,9 @@ export async function findUserByEmail(email: string, requestId: string): Promise
   let connection: any = null;
   
   try {
-    // Timeout aumentado para conexões lentas
-    const connectionPromise = getPoolConnection();
-    const connectionTimeout = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout ao obter conexão (5s)')), 5000);
-    });
-    
-    connection = await Promise.race([connectionPromise, connectionTimeout]);
+    // Obter conexão (getPoolConnection já tem timeout de 20s)
+    connection = await getPoolConnection();
+    logger.info(`[AuthService] [${requestId}] ✅ Conexão obtida do pool`);
     
     const queryPromise = connection.execute(
       `SELECT id, email, name, password_hash, login_method, role, credits, language, avatar_url
@@ -82,9 +78,9 @@ export async function findUserByEmail(email: string, requestId: string): Promise
       [email.toLowerCase()]
     );
     
-    // Timeout aumentado para queries lentas
+    // Timeout aumentado para queries lentas (Railway pode ser lento)
     const queryTimeout = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout na query (3s)')), 3000);
+      setTimeout(() => reject(new Error('Timeout na query (10s)')), 10000); // 10 segundos
     });
     
     const [rows] = await Promise.race([queryPromise, queryTimeout]);
@@ -112,7 +108,7 @@ export async function verifyPassword(password: string, hash: string, requestId: 
   try {
     const passwordPromise = bcrypt.compare(password, hash);
     const passwordTimeout = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout na verificação de senha (2s)')), 2000);
+      setTimeout(() => reject(new Error('Timeout na verificação de senha (5s)')), 5000); // 5 segundos
     });
     
     return await Promise.race([passwordPromise, passwordTimeout]);

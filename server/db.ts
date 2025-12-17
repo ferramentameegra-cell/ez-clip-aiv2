@@ -37,7 +37,7 @@ export function getConnectionPool(): mysql.Pool {
     waitForConnections: true,
     connectionLimit: 10, // Máximo de conexões no pool
     queueLimit: 0, // Sem limite de fila
-    connectTimeout: 10000, // 10 segundos para conectar
+    connectTimeout: 20000, // 20 segundos para conectar (Railway pode ser lento)
     enableKeepAlive: true,
     keepAliveInitialDelay: 0,
   });
@@ -120,12 +120,12 @@ export async function getPoolConnection(): Promise<mysql.PoolConnection> {
     
     const pool = getConnectionPool();
     
-    // Criar promise com timeout
+    // Criar promise com timeout (aumentado para Railway)
     const connectionPromise = pool.getConnection();
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
-        reject(new Error('Timeout ao obter conexão do pool (10s)'));
-      }, 10000); // 10 segundos de timeout
+        reject(new Error('Timeout ao obter conexão do pool (20s)'));
+      }, 20000); // 20 segundos de timeout (Railway pode ser lento)
     });
     
     const connection = await Promise.race([connectionPromise, timeoutPromise]);
