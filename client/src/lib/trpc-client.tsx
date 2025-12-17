@@ -36,7 +36,7 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
           fetch: async (url, options) => {
             console.log('[tRPC] Fazendo requisição para:', url);
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 60000);
+            const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 segundos para Railway
             
             try {
               const response = await fetch(url, {

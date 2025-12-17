@@ -13,7 +13,7 @@ import { Mail, Lock, Loader2, Eye, EyeOff, Sparkles, ArrowRight } from 'lucide-r
 import { toast } from 'sonner';
 import { useTheme } from '@/contexts/ThemeContext';
 
-const FRONTEND_TIMEOUT = 30000; // 30 segundos
+const FRONTEND_TIMEOUT = 60000; // 60 segundos (Railway pode ser mais lento)
 
 interface LoginResponse {
   success: boolean;

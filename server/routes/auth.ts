@@ -9,7 +9,7 @@ import { logger } from '../lib/logger';
 import { processLogin, LoginCredentials } from '../services/authService';
 
 const router = Router();
-const LOGIN_TIMEOUT_MS = 10000; // 10 segundos (tempo realista para conexões lentas)
+const LOGIN_TIMEOUT_MS = 15000; // 15 segundos (Railway pode ser mais lento)
 
 /**
  * Endpoint de login
