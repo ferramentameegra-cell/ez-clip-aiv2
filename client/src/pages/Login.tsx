@@ -112,6 +112,7 @@ export function Login() {
       console.log('[Login] Timeout configurado:', FRONTEND_TIMEOUT, 'ms');
       console.log('[Login] Fazendo requisição para:', `${backendUrl}/auth/login`);
 
+      // Medir tempo da requisição
       const fetchStartTime = Date.now();
       const response = await fetch(`${backendUrl}/auth/login`, {
         method: 'POST',
@@ -129,6 +130,7 @@ export function Login() {
         timeoutRef.current = null;
       }
 
+      // Calcular duração da requisição
       const fetchDuration = Date.now() - fetchStartTime;
       console.log('[Login] Resposta recebida em:', fetchDuration, 'ms');
       console.log('[Login] Status:', response.status, response.statusText);
