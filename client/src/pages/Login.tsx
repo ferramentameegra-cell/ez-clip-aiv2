@@ -109,7 +109,10 @@ export function Login() {
       console.log('[Login] Iniciando login...');
       console.log('[Login] Backend URL:', backendUrl);
       console.log('[Login] Email:', email.trim().toLowerCase());
+      console.log('[Login] Timeout configurado:', FRONTEND_TIMEOUT, 'ms');
+      console.log('[Login] Fazendo requisição para:', `${backendUrl}/auth/login`);
 
+      const fetchStartTime = Date.now();
       const response = await fetch(`${backendUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
