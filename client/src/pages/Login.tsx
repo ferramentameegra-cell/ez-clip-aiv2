@@ -126,6 +126,10 @@ export function Login() {
         timeoutRef.current = null;
       }
 
+      const fetchDuration = Date.now() - fetchStartTime;
+      console.log('[Login] Resposta recebida em:', fetchDuration, 'ms');
+      console.log('[Login] Status:', response.status, response.statusText);
+
       const data: LoginResponse = await response.json();
       
       console.log('[Login] Resposta recebida:', { success: data.success, hasData: !!data.data, error: data.error });
