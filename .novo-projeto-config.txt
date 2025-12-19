@@ -1,0 +1,20 @@
+# Configuração para Novo Projeto
+# Gerado em: Thu Dec 18 22:42:31 -03 2025
+
+## Informações do Projeto
+NOME_PROJETO=ez-clip-ai
+VERSAO=1.0.0
+BRANCH=main
+
+## JWT_SECRET Gerado
+JWT_SECRET=swzr2Yl2Z/ebLEkbW8csjfFe8B7tsu6+zJWx+E8ripE=
+
+## Próximos Passos:
+1. Criar repositório no GitHub: https://github.com/new
+2. Executar: git remote add novo-origin [URL_DO_REPOSITORIO]
+3. Executar: git push -u novo-origin main
+4. Criar projeto no Railway: https://railway.app
+5. Conectar ao repositório GitHub
+6. Configurar variáveis de ambiente (veja ENV_VARIABLES.md)
+7. Criar MySQL e Redis no Railway
+8. Aplicar migrations: npm run db:push
