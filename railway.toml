@@ -1,0 +1,27 @@
+# Railway Configuration - Config as Code
+# Este arquivo configura automaticamente o deploy no Railway
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm install && npm run build"
+
+[deploy]
+startCommand = "npm start"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+# Healthcheck
+[healthcheck]
+path = "/health"
+timeout = 30
+interval = 10
+
+# Variáveis de ambiente padrão (podem ser sobrescritas no Railway)
+[env]
+NODE_ENV = "production"
+PORT = "3001"
+
+# Configurações de recursos
+[resources]
+memory = "1GB"
+cpu = "1"
