@@ -53,6 +53,7 @@ export interface RetentionVideo {
   name: string | null;
   vertical: VerticalType | null;
   thumbnailUrl: string | null;
+  videoUrl: string | null;
   duration: number | null;
   createdAt: Date | null;
 }
@@ -77,6 +78,7 @@ export const userContentRouter = router({
           name: video.name,
           vertical: video.vertical as VerticalType | null,
           thumbnailUrl: null, // TODO: Adicionar thumbnailUrl ao schema se necessário
+          videoUrl: video.videoUrl || null,
           duration: video.duration,
           createdAt: video.createdAt,
         }));
