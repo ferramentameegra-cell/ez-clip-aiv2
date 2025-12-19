@@ -14,10 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { RetentionVideoGallery } from '@/components/RetentionVideoGallery';
-import { UserVideoSelector } from '@/components/UserVideoSelector';
-import { EmojiGallery } from '@/components/EmojiGallery';
-import { VideoPreviewSelector } from '@/components/VideoPreviewSelector';
+import { CreateJobWizard, JobData } from '@/components/CreateJobWizard';
 import { VerticalType, VERTICAIS_LIST } from 'shared/verticais';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
@@ -38,17 +35,7 @@ export function Dashboard() {
   const { isDark } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
-  const [packageSize, setPackageSize] = useState<PackageSize | ''>('');
-  const [vertical, setVertical] = useState<VerticalType | ''>('');
-  const [youtubeUrl, setYoutubeUrl] = useState('');
-  const [clipDuration, setClipDuration] = useState('60');
-  const [addSubtitles, setAddSubtitles] = useState(true);
-  const [secondaryType, setSecondaryType] = useState<SecondaryContentType>('none');
-  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
-  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
-  const [headline, setHeadline] = useState('');
-  const [videoStartTime, setVideoStartTime] = useState<number | undefined>(undefined);
-  const [videoEndTime, setVideoEndTime] = useState<number | undefined>(undefined);
+  const [showWizard, setShowWizard] = useState(false);
 
   // Remover verificação de autenticação - acesso direto
   // const { data: userProfile } = trpc.auth.getProfile.useQuery();
@@ -66,53 +53,27 @@ export function Dashboard() {
 
   const createJob = trpc.video.create.useMutation({
     onSuccess: () => {
-      toast.success('Job criado com sucesso!');
-      // Limpar formulário
-      setYoutubeUrl('');
-      setVertical('');
-      setPackageSize('');
-      setClipDuration('60');
-      setAddSubtitles(true);
-      setSecondaryType('none');
-      setSelectedVideo(null);
-      setSelectedEmoji(null);
-      setHeadline('');
-      setVideoStartTime(undefined);
-      setVideoEndTime(undefined);
+      toast.success('Série criada com sucesso!');
+      setShowWizard(false);
     },
     onError: (error) => {
-      toast.error(error.message || 'Erro ao criar job');
+      toast.error(error.message || 'Erro ao criar série');
     },
   });
 
-  const handleCreateJob = () => {
-    if (!youtubeUrl) {
-      toast.error('Por favor, insira a URL do YouTube');
-      return;
-    }
-    if (!vertical) {
-      toast.error('Por favor, selecione um nicho');
-      return;
-    }
-
-    // Verificação de créditos removida - acesso direto sem autenticação
-    // const creditsNeeded = packageSize ? parseInt(packageSize) : 1;
-    // if (userProfile && userProfile.credits < creditsNeeded) {
-    //   toast.error(`Você precisa de ${creditsNeeded} crédito(s). Você tem ${userProfile.credits}.`);
-    //   return;
-    // }
-
+  const handleWizardComplete = (data: JobData) => {
+    // Converter dados do wizard para o formato esperado pela API
     createJob.mutate({
-      youtubeUrl,
-      packageSize: packageSize || undefined,
-      clipDuration: packageSize ? undefined : Number(clipDuration),
-      withSubtitles: addSubtitles,
-      vertical: vertical as VerticalType,
-      secondaryContentType: secondaryType !== 'none' ? secondaryType : undefined,
-      secondaryContentId: secondaryType !== 'none' && (selectedVideo || selectedEmoji) ? (selectedVideo || selectedEmoji || undefined) : undefined,
-      headline: headline || undefined,
-      startTime: videoStartTime !== undefined ? videoStartTime : undefined,
-      endTime: videoEndTime !== undefined ? videoEndTime : undefined,
+      youtubeUrl: data.youtubeUrl,
+      packageSize: data.packageSize,
+      clipDuration: data.clipDuration,
+      withSubtitles: data.withSubtitles,
+      vertical: data.vertical,
+      secondaryContentType: data.retentionVideoId ? 'platform' : undefined,
+      secondaryContentId: data.retentionVideoId || undefined,
+      headline: data.headline,
+      startTime: data.startTime,
+      endTime: data.endTime,
     });
   };
 
@@ -252,216 +213,36 @@ export function Dashboard() {
           </div>
 
           {/* Form Section */}
-          <Card className={isDark ? 'bg-slate-800 border-slate-700' : ''}>
-            <CardHeader>
-              <CardTitle className={isDark ? 'text-white' : ''}>
-                {t('dashboard.newClip')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Créditos */}
-              {userProfile && (
-                <div className={`p-4 rounded-lg ${userProfile.credits > 0 ? (isDark ? 'bg-green-900/30 border border-green-800' : 'bg-green-50 border border-green-200') : (isDark ? 'bg-red-900/30 border border-red-800' : 'bg-red-50 border border-red-200')}`}>
-                  <p className={`text-sm font-medium ${userProfile.credits > 0 ? (isDark ? 'text-green-400' : 'text-green-800') : (isDark ? 'text-red-400' : 'text-red-800')}`}>
-                    Créditos disponíveis: <span className="font-bold">{userProfile.credits}</span>
+          {!showWizard ? (
+            <Card className={isDark ? 'bg-slate-800 border-slate-700' : ''}>
+              <CardHeader>
+                <CardTitle className={isDark ? 'text-white' : ''}>
+                  {t('dashboard.newClip')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="text-center py-8">
+                  <p className={`text-lg mb-4 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Crie séries virais sequenciais com vídeos de retenção hipnóticos
                   </p>
+                  <Button
+                    size="lg"
+                    onClick={() => setShowWizard(true)}
+                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                  >
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    Criar Nova Série
+                  </Button>
                 </div>
-              )}
+              </CardContent>
+            </Card>
+          ) : (
+            <CreateJobWizard
+              onComplete={handleWizardComplete}
+              isSubmitting={createJob.isPending}
+            />
+          )}
 
-              {/* URL do YouTube */}
-              <div>
-                <Label className={`${isDark ? 'text-gray-300' : ''} flex items-center gap-2`}>
-                  <Youtube className="h-5 w-5 text-red-600" />
-                  URL do YouTube
-                </Label>
-                <Input
-                  className="mt-1"
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  value={youtubeUrl}
-                  onChange={(e) => {
-                    setYoutubeUrl(e.target.value);
-                    setVideoStartTime(undefined);
-                    setVideoEndTime(undefined);
-                  }}
-                />
-              </div>
-
-              {/* Preview e Seleção de Trecho */}
-              {youtubeUrl && (
-                <VideoPreviewSelector
-                  youtubeUrl={youtubeUrl}
-                  onTimeRangeChange={(start, end) => {
-                    setVideoStartTime(start);
-                    setVideoEndTime(end);
-                  }}
-                  disabled={!youtubeUrl}
-                />
-              )}
-
-              {/* Pacote de Clipes */}
-              <div>
-                <Label className={isDark ? 'text-gray-300' : ''}>Pacote de Clipes</Label>
-                <Select
-                  value={packageSize}
-                  onValueChange={(value) => {
-                    setPackageSize(value as PackageSize);
-                    if (value && PACKAGE_PRESETS[value as PackageSize]) {
-                      const preset = PACKAGE_PRESETS[value as PackageSize];
-                      setClipDuration(preset.duration.toString());
-                    }
-                  }}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Selecione um pacote" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">Pack 5 - 5 créditos</SelectItem>
-                    <SelectItem value="10">Pack 10 - 10 créditos</SelectItem>
-                    <SelectItem value="50">Pack 50 - 50 créditos</SelectItem>
-                    <SelectItem value="100">Pack 100 - 100 créditos</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Duração */}
-              {!packageSize && (
-                <div>
-                  <Label className={`${isDark ? 'text-gray-300' : ''} flex items-center gap-2`}>
-                    <Clock className="h-5 w-5" />
-                    Duração (segundos)
-                  </Label>
-                  <Input
-                    type="number"
-                    className="mt-1"
-                    value={clipDuration}
-                    onChange={(e) => setClipDuration(e.target.value)}
-                    min="30"
-                    max="180"
-                  />
-                </div>
-              )}
-
-              {/* Legendas */}
-              <div className={`flex items-center space-x-3 p-4 rounded-lg ${isDark ? 'bg-slate-700' : 'bg-purple-50'}`}>
-                <Checkbox
-                  id="subtitles"
-                  checked={addSubtitles}
-                  onCheckedChange={(checked) => setAddSubtitles(checked === true)}
-                />
-                <Label htmlFor="subtitles" className="flex-1 cursor-pointer">
-                  Adicionar Legendas
-                </Label>
-                <Badge>+40% retenção</Badge>
-              </div>
-
-              {/* Nicho */}
-              <div>
-                <Label className={isDark ? 'text-gray-300' : ''}>Escolha o Nicho</Label>
-                <Select value={vertical} onValueChange={(value) => setVertical(value as VerticalType)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Selecione o nicho" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {VERTICAIS_LIST.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.emoji} {v.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Conteúdo Secundário */}
-              <div>
-                <Label className={isDark ? 'text-gray-300' : ''}>Tipo de Conteúdo Secundário</Label>
-                <RadioGroup
-                  value={secondaryType}
-                  onValueChange={(value) => {
-                    setSecondaryType(value as SecondaryContentType);
-                    setSelectedVideo(null);
-                    setSelectedEmoji(null);
-                  }}
-                  className="mt-2 space-y-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="none" id="none" />
-                    <Label htmlFor="none" className="cursor-pointer">Nenhum</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="platform" id="platform" />
-                    <Label htmlFor="platform" className="cursor-pointer">Vídeos da Plataforma</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="user" id="user" />
-                    <Label htmlFor="user" className="cursor-pointer">Meus Vídeos</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="emoji" id="emoji" />
-                    <Label htmlFor="emoji" className="cursor-pointer">Emojis 3D</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              {/* Galerias Condicionais */}
-              {secondaryType === 'platform' && vertical && (
-                <RetentionVideoGallery
-                  vertical={vertical as VerticalType}
-                  selectedVideoId={selectedVideo}
-                  onVideoSelect={setSelectedVideo}
-                />
-              )}
-
-              {secondaryType === 'user' && vertical && (
-                <UserVideoSelector
-                  vertical={vertical as VerticalType}
-                  selectedVideoId={selectedVideo}
-                  onVideoSelect={setSelectedVideo}
-                />
-              )}
-
-              {secondaryType === 'emoji' && (
-                <EmojiGallery
-                  selectedEmojiId={selectedEmoji}
-                  onEmojiSelect={setSelectedEmoji}
-                />
-              )}
-
-              {/* Headline */}
-              <div>
-                <Label className={`${isDark ? 'text-gray-300' : ''} flex items-center gap-2`}>
-                  <Type className="h-5 w-5" />
-                  Headline (opcional)
-                </Label>
-                <Input
-                  className="mt-1"
-                  placeholder="Ex: Como Ganhar R$ 10k/mês"
-                  value={headline}
-                  onChange={(e) => setHeadline(e.target.value)}
-                  maxLength={100}
-                />
-              </div>
-
-              {/* Botão Submit */}
-              <Button
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                onClick={handleCreateJob}
-                disabled={!youtubeUrl || !vertical || createJob.isPending}
-              >
-                {createJob.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Criando...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Criar Clipe
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
         </main>
       </div>
     </div>

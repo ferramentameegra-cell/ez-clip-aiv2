@@ -202,15 +202,14 @@ async function createVerticalComposition(
     );
   }
 
-  // Adicionar numeração "PARTE X/Y"
-  if (partNumber && totalParts) {
-    const lastFilter = headline ? 'tmp3' : 'tmp2';
-    filters.push(
-      `[${lastFilter}]drawtext=text='PARTE ${partNumber}/${totalParts}':fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:fontsize=24:fontcolor=white:borderw=2:bordercolor=black:x=20:y=20[out]`
-    );
-  } else {
-    filters.push(headline ? '[tmp3]copy[out]' : '[tmp2]copy[out]');
-  }
+  // Adicionar numeração "PARTE X/Y" (OBRIGATÓRIA - nunca removível)
+  // Se partNumber/totalParts não forem fornecidos, usar valores padrão
+  const finalPartNumber = partNumber || 1;
+  const finalTotalParts = totalParts || 1;
+  const lastFilter = headline ? 'tmp3' : 'tmp2';
+  filters.push(
+    `[${lastFilter}]drawtext=text='PARTE ${finalPartNumber}/${finalTotalParts}':fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:fontsize=24:fontcolor=white:borderw=2:bordercolor=black:x=20:y=20[out]`
+  );
 
   const filterComplex = filters.join(';');
 
