@@ -26,7 +26,7 @@ fi
 
 # Configurar repositório
 REPO_OWNER="ferramentameegra-cell"
-REPO_NAME="ez-clip-aiv2"
+REPO_NAME="ez-clips-aiv2"
 
 # Verificar se token está configurado
 if [ -f ".env.local" ]; then

@@ -27,7 +27,7 @@ https://github.com/settings/tokens
 ### Opção A: Token no URL (Rápido)
 
 ```bash
-git remote set-url origin https://ghp_SEU_TOKEN_AQUI@github.com/ferramentameegra-cell/ez-clip-aiv2.git
+git remote set-url origin https://ghp_SEU_TOKEN_AQUI@github.com/ferramentameegra-cell/ez-clips-aiv2.git
 ```
 
 ### Opção B: SSH (Mais Seguro - Recomendado)
@@ -35,7 +35,7 @@ git remote set-url origin https://ghp_SEU_TOKEN_AQUI@github.com/ferramentameegra
 Se você já tem SSH configurado:
 
 ```bash
-git remote set-url origin git@github.com:ferramentameegra-cell/ez-clip-aiv2.git
+git remote set-url origin git@github.com:ferramentameegra-cell/ez-clips-aiv2.git
 ```
 
 ---

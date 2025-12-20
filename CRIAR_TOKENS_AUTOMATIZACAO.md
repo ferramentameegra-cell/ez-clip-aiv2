@@ -43,7 +43,7 @@ Guarde o token em um local seguro. Você vai usar para:
 
 ```bash
 # Configurar remote com token
-git remote set-url origin https://ghp_SEU_TOKEN_AQUI@github.com/ferramentameegra-cell/ez-clip-aiv2.git
+git remote set-url origin https://ghp_SEU_TOKEN_AQUI@github.com/ferramentameegra-cell/ez-clips-aiv2.git
 ```
 
 ### Opção B: Usar Token via Git Credential Helper (Recomendado)
@@ -85,7 +85,7 @@ cat ~/.ssh/id_ed25519.pub
 
 5. **Configurar remote:**
 ```bash
-git remote set-url origin git@github.com:ferramentameegra-cell/ez-clip-aiv2.git
+git remote set-url origin git@github.com:ferramentameegra-cell/ez-clips-aiv2.git
 ```
 
 ---
@@ -114,12 +114,12 @@ Crie o arquivo `automatizar-tudo.sh`:
 set -e
 
 GITHUB_TOKEN="ghp_SEU_TOKEN_AQUI"
-REPO_URL="https://github.com/ferramentameegra-cell/ez-clip-aiv2.git"
+REPO_URL="https://github.com/ferramentameegra-cell/ez-clips-aiv2.git"
 
 echo "🚀 Iniciando automação completa..."
 
 # 1. Configurar Git com token
-git remote set-url origin https://${GITHUB_TOKEN}@github.com/ferramentameegra-cell/ez-clip-aiv2.git
+git remote set-url origin https://${GITHUB_TOKEN}@github.com/ferramentameegra-cell/ez-clips-aiv2.git
 
 # 2. Fazer commit de mudanças (se houver)
 if [ -n "$(git status --porcelain)" ]; then
@@ -177,13 +177,13 @@ export RAILWAY_TOKEN="seu_railway_token_aqui"
 
 **Opção A: Com Token no URL**
 ```bash
-git remote set-url origin https://ghp_SEU_TOKEN@github.com/ferramentameegra-cell/ez-clip-aiv2.git
+git remote set-url origin https://ghp_SEU_TOKEN@github.com/ferramentameegra-cell/ez-clips-aiv2.git
 ```
 
 **Opção B: SSH (Recomendado)**
 ```bash
 # Se já tem chave SSH configurada:
-git remote set-url origin git@github.com:ferramentameegra-cell/ez-clip-aiv2.git
+git remote set-url origin git@github.com:ferramentameegra-cell/ez-clips-aiv2.git
 ```
 
 ### 3. Fazer Push
