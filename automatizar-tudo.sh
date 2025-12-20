@@ -27,9 +27,8 @@ fi
 # Configurar repositório
 REPO_OWNER="ferramentameegra-cell"
 REPO_NAME="ez-clip-aiv2"
-GITHUB_TOKEN="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"
 
-# Verificar se token está configurado no .env.local (prioridade)
+# Verificar se token está configurado no .env.local
 if [ -f ".env.local" ]; then
     source .env.local
 fi

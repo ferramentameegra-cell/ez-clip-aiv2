@@ -3,8 +3,8 @@
 ## 🎉 Status Atual
 
 ✅ **Token GitHub configurado:**
-- Token: `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`
-- Repositório: `ez-clips-aiv2`
+- Token: Configurado no Git remote e .env.local
+- Repositório: `ez-clip-aiv2`
 - Git remote configurado com token
 
 ---
@@ -14,7 +14,7 @@
 O token está pronto, mas o repositório ainda precisa ser criado:
 
 1. **Acesse:** https://github.com/new
-2. **Nome:** `ez-clips-aiv2`
+2. **Nome:** `ez-clip-aiv2`
 3. **NÃO marque nenhuma opção**
 4. **Clique em "Create repository"**
 

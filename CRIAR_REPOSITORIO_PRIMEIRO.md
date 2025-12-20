@@ -41,10 +41,7 @@ Ou use o script automatizado:
 
 ## 🔐 Token Já Configurado
 
-✅ O token já está configurado no Git:
-```
-https://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@github.com/ferramentameegra-cell/ez-clips-aiv2.git
-```
+✅ O token já está configurado no Git remote.
 
 Quando o repositório for criado, o push funcionará automaticamente sem pedir senha!
 
