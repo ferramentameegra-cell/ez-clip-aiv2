@@ -1,218 +1,199 @@
-# 🚀 DEPLOY COMPLETO NO RAILWAY - EZ CLIPS AI
+# 🚀 Deploy Completo no Railway - EZ Clips AI
 
-## ✅ PRÉ-REQUISITOS JÁ IMPLEMENTADOS
+## ✅ Método 1: Via Dashboard (Recomendado - Mais Fácil)
 
-- ✅ Código commitado e enviado para GitHub
-- ✅ Todas as correções críticas implementadas:
-  - ✅ Bug max retries corrigido
-  - ✅ Sistema de logging com Winston
-  - ✅ Integração Stripe completa
-  - ✅ Rate limiting robusto
-  - ✅ Sistema de créditos funcionando
+### Passo 1: Acessar Railway
 
----
+1. **Acesse:** https://railway.app
+2. **Faça login** (pode usar conta GitHub)
 
-## 📋 PASSO A PASSO DO DEPLOY
+### Passo 2: Criar Novo Projeto
 
-### 1. Aplicar Migrations no Banco de Dados (Railway MySQL)
+1. Clique em **"+ New Project"**
+2. Selecione **"Deploy from GitHub repo"**
+3. Se for a primeira vez, **autorize Railway** a acessar GitHub
+4. **Selecione o repositório:** `ferramentameegra-cell/ez-clip-aiv2`
+5. Clique em **"Deploy Now"**
 
-1. Acesse o **Railway Dashboard**
-2. Vá em seu projeto → **MySQL Database**
-3. Clique em **"Query"** ou **"Connect"**
-4. Execute o script `SQL_CRIAR_TABELAS_STRIPE.sql`:
+O Railway vai detectar automaticamente:
+- ✅ Node.js (detecta `package.json`)
+- ✅ Build command: `npm install && npm run build`
+- ✅ Start command: `npm start`
 
-```sql
--- Adicionar coluna stripeCustomerId
-ALTER TABLE users 
-ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(256) UNIQUE;
+### Passo 3: Configurar Variáveis de Ambiente
 
--- Criar tabela subscriptions
-CREATE TABLE IF NOT EXISTS subscriptions (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  stripe_customer_id VARCHAR(256) NOT NULL,
-  stripe_subscription_id VARCHAR(256) UNIQUE NOT NULL,
-  price_id VARCHAR(256) NOT NULL,
-  plan_key VARCHAR(256) NOT NULL,
-  billing_interval VARCHAR(256) NOT NULL,
-  status VARCHAR(256) NOT NULL,
-  current_period_start TIMESTAMP NULL,
-  current_period_end TIMESTAMP NULL,
-  cancel_at_period_end BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
+**Railway → Seu Projeto → Service → Variables → "New Variable"**
 
--- Criar tabela credit_ledgers
-CREATE TABLE IF NOT EXISTS credit_ledgers (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  delta INT NOT NULL,
-  reason VARCHAR(256) NOT NULL,
-  meta JSON,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-```
+Adicione uma por uma:
 
-**OU** execute via CLI:
-
-```bash
-railway connect mysql
-# Cole o SQL acima
-```
-
----
-
-### 2. Configurar Variáveis de Ambiente no Railway
-
-No **Railway Dashboard** → Seu projeto → **Variables**:
-
-#### Variáveis Obrigatórias (já configuradas):
-```
-DATABASE_URL=mysql://... (gerado automaticamente pelo Railway)
-REDIS_URL=redis://... (gerado automaticamente pelo Railway)
-JWT_SECRET=sua_chave_secreta_aqui
-PORT=3000
+```env
 NODE_ENV=production
+PORT=3001
+JWT_SECRET=swzr2Yl2Z/ebLEkbW8csjfFe8B7tsu6+zJWx+E8ripE=
+FRONTEND_URL=https://seu-projeto.railway.app
 ```
 
-#### Variáveis Stripe (NOVAS - CONFIGURAR AGORA):
+**⚠️ IMPORTANTE:** `FRONTEND_URL` será atualizado depois quando gerar o domínio.
 
-1. **Acesse** https://dashboard.stripe.com/test/products (test) ou https://dashboard.stripe.com/products (production)
+### Passo 4: Criar MySQL
 
-2. **Crie os produtos e preços**:
-   - Starter: R$ 29/mês, R$ 299/ano
-   - Creator: R$ 79/mês, R$ 799/ano  
-   - Pro: R$ 199/mês, R$ 1999/ano
+1. Railway → **"+ New"** → **"Database"** → **"Add MySQL"**
+2. Aguarde MySQL ser criado (1-2 minutos)
+3. MySQL → **Variables** → Copie o valor de `DATABASE_URL`
+4. Volte para o serviço principal → **Variables** → **New Variable**
+5. Adicione: `DATABASE_URL` = (cole o valor copiado)
 
-3. **Copie os Price IDs** (começam com `price_...`)
+### Passo 5: Criar Redis (Opcional mas Recomendado)
 
-4. **Adicione no Railway**:
-```
-STRIPE_SECRET_KEY=sk_test_... (ou sk_live_...)
-STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_PRICE_STARTER_MONTH=price_...
-STRIPE_PRICE_STARTER_YEAR=price_...
-STRIPE_PRICE_CREATOR_MONTH=price_...
-STRIPE_PRICE_CREATOR_YEAR=price_...
-STRIPE_PRICE_PRO_MONTH=price_...
-STRIPE_PRICE_PRO_YEAR=price_...
-```
+1. Railway → **"+ New"** → **"Database"** → **"Add Redis"**
+2. Aguarde Redis ser criado
+3. Redis → **Variables** → Copie o valor de `REDIS_URL`
+4. Volte para o serviço principal → **Variables** → **New Variable**
+5. Adicione: `REDIS_URL` = (cole o valor copiado)
 
-#### Variáveis Storage (Cloudflare R2):
-```
-AWS_ACCESS_KEY_ID=seu_access_key_id
-AWS_SECRET_ACCESS_KEY=seu_secret_access_key
-AWS_S3_ENDPOINT=https://...r2.cloudflarestorage.com
-AWS_S3_BUCKET=nome_do_bucket
-AWS_REGION=auto
-```
+### Passo 6: Gerar Domínio
 
-#### Variáveis APIs (já configuradas):
-```
-OPENAI_API_KEY=...
-BUILT_IN_FORGE_API_KEY=...
-BUILT_IN_FORGE_API_URL=https://api.manus.im
-```
+1. Railway → **Settings** → **"Domains"**
+2. Clique em **"Generate Domain"**
+3. Anote a URL gerada (ex: `https://ez-clip-aiv2-production.up.railway.app`)
+4. Volte para **Variables** → Atualize `FRONTEND_URL` com a URL gerada
 
----
+### Passo 7: Aplicar Migrations
 
-### 3. Configurar Build e Start Commands
+**Opção A: Via Railway Dashboard**
 
-No **Railway Dashboard** → Seu projeto → **Settings** → **Deploy**:
+1. Railway → MySQL → **"Data"** ou **"Query"**
+2. Execute o SQL necessário (veja `drizzle/schema.ts`)
 
-**Build Command:**
+**Opção B: Via Railway CLI** (se tiver instalado)
+
 ```bash
-npm install && npm run build
+# Instalar Railway CLI
+npm install -g @railway/cli
+
+# Login
+railway login
+
+# Linkar projeto
+railway link
+
+# Conectar ao MySQL e aplicar migrations
+railway connect mysql
+npm run db:push
 ```
 
-**Start Command:**
-```bash
-npm start
-```
+### Passo 8: Verificar Deploy
 
-**Node Version:**
-```
-22
-```
-
----
-
-### 4. Configurar Webhook do Stripe
-
-1. **Acesse** https://dashboard.stripe.com/webhooks
-2. **Clique** em "Add endpoint"
-3. **URL do endpoint**: `https://seu-dominio.railway.app/api/webhooks/stripe`
-4. **Eventos para escutar**:
-   - `customer.subscription.created`
-   - `customer.subscription.updated`
-   - `customer.subscription.deleted`
-   - `invoice.payment_succeeded`
-5. **Copie o "Signing secret"** (começa com `whsec_...`)
-6. **Adicione** no Railway como `STRIPE_WEBHOOK_SECRET`
-
----
-
-### 5. Verificar Deploy
-
-1. **Acesse** seu domínio Railway: `https://seu-projeto.railway.app`
-2. **Verifique logs** no Railway Dashboard → **Deployments** → **View Logs**
-3. **Teste endpoints**:
+1. Aguarde o build completar (3-5 minutos)
+2. Acompanhe em **Deployments** → **View Logs**
+3. Teste a URL:
    - Health: `https://seu-projeto.railway.app/health`
-   - tRPC: `https://seu-projeto.railway.app/trpc`
+   - Frontend: `https://seu-projeto.railway.app`
 
 ---
 
-## 🔍 VERIFICAÇÕES PÓS-DEPLOY
+## ✅ Método 2: Via Railway CLI (Avançado)
 
-### ✅ Banco de Dados
-- [ ] Tabela `subscriptions` criada
-- [ ] Tabela `credit_ledgers` criada
-- [ ] Coluna `stripe_customer_id` em `users`
+### Pré-requisitos
 
-### ✅ Redis
-- [ ] Redis conectado (ver logs: `[Redis] Conectado com sucesso`)
-- [ ] Sem erros "max retries"
+```bash
+# Instalar Railway CLI
+npm install -g @railway/cli
 
-### ✅ Stripe
-- [ ] Variáveis de ambiente configuradas
-- [ ] Webhook configurado e funcionando
-- [ ] Price IDs corretos
+# Login
+railway login
+```
 
-### ✅ Aplicação
-- [ ] Servidor iniciado (`🚀 Backend rodando`)
-- [ ] Fila de processamento ativa (`[Queue] Fila inicializada`)
-- [ ] Sem erros críticos nos logs
+### Deploy
 
----
+```bash
+cd /Users/josyasborba/Desktop/viral-clips-ai
 
-## 🐛 TROUBLESHOOTING
+# Criar/linkar projeto
+railway init
+# Ou
+railway link
 
-### Erro: "max retries per request limit"
-**Solução:** ✅ JÁ CORRIGIDO - Redis configurado com `maxRetriesPerRequest: null`
+# Configurar variáveis
+railway variables set NODE_ENV=production
+railway variables set PORT=3001
+railway variables set JWT_SECRET=swzr2Yl2Z/ebLEkbW8csjfFe8B7tsu6+zJWx+E8ripE=
 
-### Erro: "Table 'subscriptions' doesn't exist"
-**Solução:** Execute o SQL acima no Railway MySQL
+# Criar MySQL e Redis no Dashboard primeiro
+# Depois obter URLs:
+# railway variables --service mysql  # Copiar DATABASE_URL
+# railway variables --service redis  # Copiar REDIS_URL
 
-### Erro: "Stripe webhook signature verification failed"
-**Solução:** Verifique se `STRIPE_WEBHOOK_SECRET` está correto no Railway
+# Configurar URLs
+railway variables set DATABASE_URL=mysql://...
+railway variables set REDIS_URL=redis://...
 
-### Erro: "Rate limit exceeded"
-**Solução:** Normal - sistema de rate limiting funcionando. Aguarde e tente novamente.
+# Deploy
+railway up
 
----
-
-## 📝 NOTAS IMPORTANTES
-
-1. **Primeiro deploy** pode levar 3-5 minutos
-2. **Migrations** devem ser aplicadas ANTES do primeiro deploy
-3. **Redis** deve estar rodando antes do backend iniciar
-4. **Webhook Stripe** só funciona com HTTPS (Railway fornece automaticamente)
+# Aplicar migrations
+railway connect mysql
+npm run db:push
+```
 
 ---
 
-## ✅ PRONTO PARA DEPLOY!
+## ✅ Checklist Completo
 
-Execute os passos acima e o site estará 100% funcional! 🚀
+Antes de considerar o deploy completo:
+
+- [ ] Repositório conectado ao Railway
+- [ ] Build completou com sucesso
+- [ ] Variáveis básicas configuradas (NODE_ENV, PORT, JWT_SECRET)
+- [ ] MySQL criado e DATABASE_URL configurado
+- [ ] Redis criado e REDIS_URL configurado (opcional)
+- [ ] Migrations aplicadas
+- [ ] Domínio gerado e FRONTEND_URL atualizado
+- [ ] Site acessível na URL do Railway
+- [ ] Health check respondendo (`/health`)
+- [ ] Frontend carregando corretamente
+
+---
+
+## 🐛 Troubleshooting
+
+### Erro: "Build failed"
+**Solução:**
+- Verifique logs: Railway → Deployments → View Logs
+- Certifique-se que `package.json` tem scripts `build` e `start`
+- Verifique Node version (deve ser 20)
+
+### Erro: "Database connection failed"
+**Solução:**
+- Verifique se `DATABASE_URL` está correto
+- Certifique-se que MySQL está rodando
+- Verifique se migrations foram aplicadas
+
+### Erro: "Port already in use"
+**Solução:**
+- Railway usa variável `PORT` automaticamente
+- Configure `PORT=3001` nas variáveis
+
+---
+
+## 📚 Arquivos de Configuração
+
+- `railway.toml` - Config as Code (já configurado)
+- `.env.local` - Token GitHub (não commitado)
+- `package.json` - Scripts de build e start
+
+---
+
+## 🚀 Próximos Passos Após Deploy
+
+1. ✅ Configurar domínio customizado (opcional)
+2. ✅ Configurar webhooks (Stripe, etc.)
+3. ✅ Configurar monitoramento
+4. ✅ Configurar backups do banco
+5. ✅ Adicionar variáveis de APIs (OpenAI, AWS S3, etc.)
+
+---
+
+**Status:** ✅ **Pronto para deploy!**
+
+**Recomendado:** Use o Método 1 (Dashboard) - mais fácil e visual! 🚀
