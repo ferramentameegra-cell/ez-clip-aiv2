@@ -147,3 +147,4 @@ railway up
 ---
 
 **Documentação completa:** Veja `COMO_CRIAR_PROJETO_GITHUB_RAILWAY.md` 🚀
+
