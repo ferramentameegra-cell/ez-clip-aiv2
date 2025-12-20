@@ -1,90 +1,89 @@
-# 🚀 DEPLOY AGORA - GUIA RÁPIDO
+# 🚀 Deploy Agora - EZ Clips AI
 
-## ✅ TUDO PRONTO!
+## ✅ Deploy no Railway (Passo a Passo Rápido)
 
-- ✅ Build passou com sucesso
-- ✅ Código corrigido
-- ✅ Nome alterado para "EZ clip ai"
-- ✅ Headers corrigidos
-
----
-
-## 🚀 3 PASSOS PARA DEPLOY:
-
-### **1. Fazer Push para GitHub**
-
-Execute no terminal:
-
-```bash
-cd /Users/danielmarczukbraun/Downloads/viral-clips-ai
-git add .
-git commit -m "Deploy: EZ clip ai pronto"
-git push origin main
+### 1️⃣ Acessar Railway
 ```
-
-**Se precisar autenticar:**
-```bash
-bash fazer-push.sh
+https://railway.app
 ```
+Faça login (pode usar conta GitHub)
 
 ---
 
-### **2. Criar Projeto no Railway**
+### 2️⃣ Criar Projeto
+1. Clique em **"+ New Project"**
+2. Selecione **"Deploy from GitHub repo"**
+3. Autorize Railway (se necessário)
+4. Selecione: **`ferramentameegra-cell/ez-clip-aiv2`**
+5. Clique em **"Deploy Now"**
 
-1. Acesse: **https://railway.app**
-2. Clique em **"New Project"**
-3. Selecione **"Deploy from GitHub repo"**
-4. Autorize Railway
-5. Escolha o repositório: **"ez-clip-ai"**
-
-Railway faz deploy automático! 🚀
+✅ Railway vai detectar automaticamente e começar o build!
 
 ---
 
-### **3. Configurar Variáveis**
+### 3️⃣ Configurar Variáveis
 
-No Railway, vá em **"Variables"** e adicione:
+**Railway → Seu Projeto → Service → Variables → "New Variable"**
+
+Adicione:
 
 ```env
-PORT=3001
 NODE_ENV=production
-DATABASE_URL=mysql://... (Railway fornece quando você criar MySQL)
-JWT_SECRET=seu_secret_aleatorio
-
-# Cloudflare R2 (você já tem)
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-AWS_S3_BUCKET=...
-AWS_S3_ENDPOINT=...
-
-# OpenAI (você já tem)
-OPENAI_API_KEY=...
-```
-
-**Depois adicione MySQL:**
-- Clique em **"New" → "Database" → "MySQL"**
-- Railway cria e fornece `DATABASE_URL`
-
----
-
-## 🌐 ACESSAR:
-
-Após deploy, Railway fornece:
-```
-https://seu-projeto.up.railway.app
+PORT=3001
+JWT_SECRET=swzr2Yl2Z/ebLEkbW8csjfFe8B7tsu6+zJWx+E8ripE=
 ```
 
 ---
 
-## 📝 DEPOIS DO DEPLOY:
+### 4️⃣ Criar MySQL
 
-1. Aplicar migrations: `railway run npm run db:push`
-2. Atualizar `VITE_TRPC_URL` com a URL do Railway
-3. Testar o site!
+1. Railway → **"+ New"** → **"Database"** → **"Add MySQL"**
+2. Aguarde criar (1-2 min)
+3. MySQL → **Variables** → Copiar `DATABASE_URL`
+4. Serviço principal → **Variables** → Adicionar `DATABASE_URL`
 
 ---
 
-**Pronto para fazer deploy!** 🎉
+### 5️⃣ Criar Redis (Opcional)
 
-Veja o guia completo em: `DEPLOY_RAILWAY_COMPLETO.md`
+1. Railway → **"+ New"** → **"Database"** → **"Add Redis"**
+2. Aguarde criar
+3. Redis → **Variables** → Copiar `REDIS_URL`
+4. Serviço principal → **Variables** → Adicionar `REDIS_URL`
 
+---
+
+### 6️⃣ Gerar Domínio
+
+1. Railway → **Settings** → **"Domains"**
+2. Clique em **"Generate Domain"**
+3. Anote a URL (ex: `https://ez-clip-aiv2-production.up.railway.app`)
+4. Atualize `FRONTEND_URL` nas variáveis
+
+---
+
+### 7️⃣ Aplicar Migrations
+
+**Via Dashboard:**
+- Railway → MySQL → **"Data"** → Execute SQL necessário
+
+**Via CLI:**
+```bash
+railway connect mysql
+npm run db:push
+```
+
+---
+
+## ✅ Verificar Deploy
+
+- Health: `https://seu-projeto.railway.app/health`
+- Site: `https://seu-projeto.railway.app`
+
+---
+
+## 🎯 Pronto!
+
+Seu EZ Clips AI está no ar! 🚀
+
+**Documentação completa:** Veja `DEPLOY_RAILWAY_COMPLETO.md`
